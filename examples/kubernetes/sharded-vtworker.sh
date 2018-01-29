@@ -22,7 +22,8 @@ script_root=`dirname "${BASH_SOURCE}"`
 source $script_root/env.sh
 
 #cell=test
-cell=reti
+cell=zone1
+
 port=15003
 vtworker_command="$*"
 
@@ -31,7 +32,7 @@ sed_script=""
 for var in vitess_image cell port vtworker_command; do
   sed_script+="s,{{$var}},${!var},g;"
 done
-
+echo "vitess_image: $vitess_image"
 # Instantiate template and send to kubectl.
 echo "Creating vtworker pod in cell $cell..."
 cat vtworker-pod-template.yaml | sed -e "$sed_script" | $KUBECTL $KUBECTL_OPTIONS create -f -
