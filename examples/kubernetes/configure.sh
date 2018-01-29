@@ -17,12 +17,25 @@
 # This script generates config.sh, which is a site-local config file that is not
 # checked into source control.
 
-# Erase any existing file since we append from here on.
-> config.sh
+# Custom cells.
+cells=reti
+read -p "Vitess cells(leave empty for default) [reti]: "
+if [ -n "$REPLY" ]; then cells="$REPLY"; fi
+
+
+# Custom keyspace.
+keyspace=metering_keyspace
+read -p "Vitess keyspace(leave empty for default) [metering_keyspace]: "
+if [ -n "$REPLY" ]; then keyspace="$REPLY"; fi
+
+# Custom UID.
+uid_base=100
+read -p "Vitess keyspace uid base(leave empty for default) [100]: "
+if [ -n "$REPLY" ]; then uid_base="$REPLY"; fi
 
 # Custom Docker image.
 read -p "Vitess Docker image (leave empty for default) []: "
-echo "vitess_image=\"$REPLY\"" >> config.sh
+if [ -n "$REPLY" ]; then image="$REPLY"; fi
 
 # Select and configure Backup Storage Implementation.
 storage=gcs
@@ -65,5 +78,13 @@ file)
   echo "ERROR: Unsupported backup storage implementation: $storage"
   exit 1
 esac
-echo "backup_flags=\"$backup_flags\"" >> config.sh
 
+# Erase any existing file since we append from here on.
+> config_${keyspace}.sh
+> config.sh
+
+echo "vitess_image=\"$image\"" >> config.sh
+echo "cells=\"$cells\"" >> config.sh
+echo "keyspace=\"$keyspace\"" >> config.sh
+echo "backup_flags=\"$backup_flags\"" >> config_${keyspace}.sh
+echo "uid_base=\"$uid_base\"" >> config_${keyspace}.sh

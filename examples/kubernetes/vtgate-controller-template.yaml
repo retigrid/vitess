@@ -28,7 +28,7 @@ spec:
           resources:
             limits:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "150m"
           command:
             - sh
             - "-c"
@@ -36,15 +36,14 @@ spec:
               mkdir -p $VTDATAROOT/tmp &&
               chown -R vitess /vt &&
               su -p -c "/vt/bin/vtgate
-              -topo_implementation etcd2
-              -topo_global_server_address http://etcd-global-client:2379
-              -topo_global_root /global
+              -topo_implementation etcd
+              -etcd_global_addrs http://etcd-global:4001
               -log_dir $VTDATAROOT/tmp
               -alsologtostderr
               -port 15001
               -grpc_port 15991
               -mysql_server_port {{mysql_server_port}}
-              -mysql_auth_server_static_string '{\"mysql_user\":{\"Password\":\"mysql_password\"}}'
+              -mysql_auth_server_static_string '{\"mysql_user\":[{\"Password\":\"mysql_password\"}]}'
               -service_map 'grpc-vtgateservice'
               -cells_to_watch {{cell}}
               -tablet_types_to_wait MASTER,REPLICA

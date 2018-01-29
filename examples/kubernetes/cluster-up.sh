@@ -27,8 +27,10 @@
 # 8. Forward vtgate port
 
 # Customizable parameters
-GKE_ZONE=${GKE_ZONE:-'us-central1-b'}
-GKE_MACHINE_TYPE=${GKE_MACHINE_TYPE:-'n1-standard-4'}
+#GKE_ZONE=${GKE_ZONE:-'us-central1-b'}
+GKE_ZONE=${GKE_ZONE:-'asia-northeast1-a'}
+#GKE_MACHINE_TYPE=${GKE_MACHINE_TYPE:-'n1-standard-4'}
+GKE_MACHINE_TYPE=${GKE_MACHINE_TYPE:-'n1-standard-1'}
 GKE_CLUSTER_NAME=${GKE_CLUSTER_NAME:-'example'}
 GKE_SSD_SIZE_GB=${GKE_SSD_SIZE_GB:-0}
 GKE_NUM_NODES=${GKE_NUM_NODES:-0}

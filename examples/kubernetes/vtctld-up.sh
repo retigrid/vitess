@@ -36,6 +36,7 @@ cat vtctld-service-template.yaml | sed -e "$sed_script" | $KUBECTL $KUBECTL_OPTI
 
 echo "Creating vtctld replicationcontroller..."
 # Expand template variables
+#echo "backup_flags: ${backup_flags}"
 sed_script=""
 for var in vitess_image backup_flags test_flags cell; do
   sed_script+="s,{{$var}},${!var},g;"

@@ -21,7 +21,8 @@ set -e
 script_root=`dirname "${BASH_SOURCE}"`
 source $script_root/env.sh
 
-cell=test
+#cell=test
+cell=reti
 port=15003
 vtworker_command="$*"
 

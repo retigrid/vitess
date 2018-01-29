@@ -22,16 +22,46 @@ set -e
 script_root=`dirname "${BASH_SOURCE}"`
 source $script_root/env.sh
 
+#get options
+for i in "$@"
+do
+case $i in
+    -t=*|--tablets_per_shard=*)
+    TABLETS_PER_SHARD="${i#*=}"
+    shift # past argument=value
+    ;;  
+#    -r=*|--readonly_count=*)
+#    RDONLY_COUNT="${i#*=}"
+#    shift # past argument=value
+#    ;;  
+    -b=*|--uid_base=*)
+    uid_base="${i#*=}"
+    shift # past argument=value
+    ;;  
+    --default)
+    DEFAULT=YES
+    shift # past argument with no value
+    ;;  
+    *)  
+          # unknown option
+    ;;  
+esac
+done
+
 echo "Starting port forwarding to vtctld..."
 start_vtctld_forward
 trap stop_vtctld_forward EXIT
 VTCTLD_ADDR="localhost:$vtctld_forward_port"
 
 # Delete the pods for all shards
-keyspace='test_keyspace'
+#keyspace='test_keyspace'
+keyspace=${KEYSPACE:-'metering_keyspace'}
+echo "KEYSPACE = $keyspace"
 SHARDS=${SHARDS:-'0'}
-TABLETS_PER_SHARD=${TABLETS_PER_SHARD:-5}
-UID_BASE=${UID_BASE:-100}
+TABLETS_PER_SHARD=${TABLETS_PER_SHARD:-3}
+echo "TABLETS_PER_SHARD: $TABLETS_PER_SHARD"
+UID_BASE=${uid_base:-100}
+echo "UID_BASE: $UID_BASE"
 
 num_shards=`echo $SHARDS | tr "," " " | wc -w`
 uid_base=$UID_BASE
@@ -45,8 +75,21 @@ for shard in `seq 1 $num_shards`; do
       uid=$[$uid_base + $uid_index + $cell_index]
       printf -v alias '%s-%010d' $cell $uid
 
-      echo "Deleting pod for tablet $alias..."
-      $KUBECTL $KUBECTL_OPTIONS delete pod vttablet-$uid
+#      echo "Deleting pod for tablet $alias...vttablet-$uid"
+		
+
+			deploy=n
+			read -p "Deleting pod for tablet $alias...vttablet-$uid [n]:"
+			if [ -n "$REPLY" ]; then deploy="$REPLY"; fi	
+
+			case ${deploy} in
+			y | Y)
+	      echo "Deleting pod for tablet $alias...vttablet-$uid"
+    	  $KUBECTL $KUBECTL_OPTIONS delete pod vttablet-$uid
+				;;
+			*)
+				echo "Skip deleting pod tablet $alias...vttablet-$uid" 
+			esac
     done
     let cell_index=cell_index+100000000
   done

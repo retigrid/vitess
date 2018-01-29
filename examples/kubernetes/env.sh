@@ -18,6 +18,15 @@
 # However, some might require a different command. For example, GKE required
 # KUBECTL='gcloud container kubectl' for a while. Now that most of our
 # use cases just need KUBECTL=kubectl, we'll make that the default.
+
+config_file=`dirname "${BASH_SOURCE}"`/config.sh
+if [ ! -f $config_file ]; then
+  echo "Please run ./configure.sh first to generate config.sh file."
+  exit 1
+fi
+
+source $config_file
+
 KUBECTL=${KUBECTL:-kubectl}
 
 # Kubernetes API address for $KUBECTL. When the Kubernetes API server is not
@@ -35,7 +44,17 @@ fi
 
 # CELLS should be a comma separated list of cells
 # the first cell listed will become local to vtctld.
-CELLS=${CELLS:-'test'}
+#CELLS=${CELLS:-'test'}
+CELLS=${cells:-'reti'}
+KEYSPACE=${keyspace:-'default_keyspace'}
+custom_config_file=`dirname "${BASH_SOURCE}"`/config_${KEYSPACE}.sh
+if [ ! -f $custom_config_file ]; then
+  echo "Please run ./configure.sh first and specify gcs storage to generate backup file."
+  exit 1
+fi
+
+source $custom_config_file
+
 
 # This should match the nodePort in vtctld-service.yaml
 VTCTLD_PORT=${VTCTLD_PORT:-30001}
@@ -80,13 +99,6 @@ stop_vtctld_forward() {
   kill $vtctld_forward_pid
 }
 
-config_file=`dirname "${BASH_SOURCE}"`/config.sh
-if [ ! -f $config_file ]; then
-  echo "Please run ./configure.sh first to generate config.sh file."
-  exit 1
-fi
-
-source $config_file
 
 # Fill in defaults for new variables, so old config.sh files still work.
 vitess_image=${vitess_image:-vitess/lite}
