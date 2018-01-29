@@ -1,0 +1,30 @@
+{
+  "sharded": true,
+  "vindexes": {
+    "hash": {
+      "type": "hash"
+    },
+    "unicode_loose_md5": {
+      "type": "unicode_loose_md5"
+    }
+  },
+  "tables": {
+    "tbl_metering_group_data": {
+      "column_vindexes": [
+        {
+          "column": "serial_id",
+          "name": "unicode_loose_md5"
+        }
+      ]
+    },
+    "tbl_metering_module_data": {
+      "column_vindexes": [
+        {
+          "column": "serial_id",
+          "name": "unicode_loose_md5"
+        }
+      ]
+    }
+  }
+}
+

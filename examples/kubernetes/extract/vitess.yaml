@@ -1,0 +1,1293 @@
+
+---
+# Source: vitess/templates/vitess.yaml
+# vtctld ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vtctld
+data:
+  config.js: |
+    // This file contains config that may need to be changed
+    // on a site-local basis.
+    vtconfig = {
+      k8s_proxy_re: /(\/api\/v1\/proxy\/.*)\/services\/vtctld/,
+      tabletLinks: function(tablet) {
+        status_href = 'http://'+tablet.hostname+':'+tablet.port_map.vt+'/debug/status'
+    
+        // If we're in Kubernetes, route through the proxy.
+        var match = window.location.pathname.match(vtconfig.k8s_proxy_re);
+        if (match) {
+          status_href = match[1] + '/pods/' + tablet.hostname.split('.')[0] + ':' + tablet.port_map.vt + '/debug/status';
+        }
+    
+        return [
+          {
+            title: 'Status',
+            href: status_href
+          }
+        ];
+      }
+    };
+---
+# Source: vitess/templates/vitess.yaml
+# Orchestrator ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orchestrator
+data:
+  orchestrator.conf.json: |
+    {
+      "Debug": true,
+      "EnableSyslog": false,
+      "ListenAddress": ":3000",
+      "AgentsServerPort": ":3001",
+      "MySQLTopologyUser": "orc_client_user",
+      "MySQLTopologyPassword": "orc_client_user_password",
+      "MySQLTopologyCredentialsConfigFile": "",
+      "MySQLTopologySSLPrivateKeyFile": "",
+      "MySQLTopologySSLCertFile": "",
+      "MySQLTopologySSLCAFile": "",
+      "MySQLTopologySSLSkipVerify": true,
+      "MySQLTopologyUseMutualTLS": false,
+      "MySQLTopologyMaxPoolConnections": 3,
+      "DatabaselessMode__experimental": false,
+      "MySQLOrchestratorHost": "127.0.0.1",
+      "MySQLOrchestratorPort": 3306,
+      "MySQLOrchestratorDatabase": "orchestrator",
+      "MySQLOrchestratorUser": "orc_server_user",
+      "MySQLOrchestratorPassword": "orc_server_user_password",
+      "MySQLOrchestratorCredentialsConfigFile": "",
+      "MySQLOrchestratorSSLPrivateKeyFile": "",
+      "MySQLOrchestratorSSLCertFile": "",
+      "MySQLOrchestratorSSLCAFile": "",
+      "MySQLOrchestratorSSLSkipVerify": true,
+      "MySQLOrchestratorUseMutualTLS": false,
+      "MySQLConnectTimeoutSeconds": 1,
+      "DefaultInstancePort": 3306,
+      "SkipOrchestratorDatabaseUpdate": false,
+      "SlaveLagQuery": "",
+      "SlaveStartPostWaitMilliseconds": 1000,
+      "DiscoverByShowSlaveHosts": true,
+      "InstancePollSeconds": 12,
+      "ReadLongRunningQueries": true,
+      "UnseenInstanceForgetHours": 240,
+      "SnapshotTopologiesIntervalHours": 0,
+      "DiscoveryPollSeconds": 5,
+      "InstanceBulkOperationsWaitTimeoutSeconds": 10,
+      "ActiveNodeExpireSeconds": 12,
+      "HostnameResolveMethod": "none",
+      "MySQLHostnameResolveMethod": "@@report_host",
+      "SkipBinlogServerUnresolveCheck": true,
+      "ExpiryHostnameResolvesMinutes": 0,
+      "RejectHostnameResolvePattern": "",
+      "ReasonableReplicationLagSeconds": 10,
+      "ProblemIgnoreHostnameFilters": [],
+      "VerifyReplicationFilters": false,
+      "MaintenanceOwner": "orchestrator",
+      "ReasonableMaintenanceReplicationLagSeconds": 20,
+      "MaintenanceExpireMinutes": 10,
+      "MaintenancePurgeDays": 365,
+      "CandidateInstanceExpireMinutes": 60,
+      "AuditLogFile": "/tmp/orchestrator-audit.log",
+      "AuditToSyslog": false,
+      "AuditPageSize": 20,
+      "AuditPurgeDays": 365,
+      "RemoveTextFromHostnameDisplay": ".mydomain.com:3306",
+      "ReadOnly": false,
+      "AuthenticationMethod": "",
+      "HTTPAuthUser": "",
+      "HTTPAuthPassword": "",
+      "AuthUserHeader": "",
+      "PowerAuthUsers": [
+        "*"
+      ],
+      "ClusterNameToAlias": {
+        "127.0.0.1": "test suite"
+      },
+      "DetectClusterAliasQuery": "SELECT value FROM _vt.local_metadata WHERE name='ClusterAlias'",
+      "DetectClusterDomainQuery": "",
+      "DetectInstanceAliasQuery": "SELECT value FROM _vt.local_metadata WHERE name='Alias'",
+      "DetectPromotionRuleQuery": "SELECT value FROM _vt.local_metadata WHERE name='PromotionRule'",
+      "DataCenterPattern": "[.]([^.]+)[.][^.]+[.]mydomain[.]com",
+      "PhysicalEnvironmentPattern": "[.]([^.]+[.][^.]+)[.]mydomain[.]com",
+      "PromotionIgnoreHostnameFilters": [],
+      "DetectSemiSyncEnforcedQuery": "SELECT @@global.rpl_semi_sync_master_wait_no_slave AND @@global.rpl_semi_sync_master_timeout > 1000000",
+      "ServeAgentsHttp": false,
+      "AgentsUseSSL": false,
+      "AgentsUseMutualTLS": false,
+      "AgentSSLSkipVerify": false,
+      "AgentSSLPrivateKeyFile": "",
+      "AgentSSLCertFile": "",
+      "AgentSSLCAFile": "",
+      "AgentSSLValidOUs": [],
+      "UseSSL": false,
+      "UseMutualTLS": false,
+      "SSLSkipVerify": false,
+      "SSLPrivateKeyFile": "",
+      "SSLCertFile": "",
+      "SSLCAFile": "",
+      "SSLValidOUs": [],
+      "StatusEndpoint": "/api/status",
+      "StatusSimpleHealth": true,
+      "StatusOUVerify": false,
+      "HttpTimeoutSeconds": 60,
+      "AgentPollMinutes": 60,
+      "AgentAutoDiscover": false,
+      "UnseenAgentForgetHours": 6,
+      "StaleSeedFailMinutes": 60,
+      "SeedAcceptableBytesDiff": 8192,
+      "PseudoGTIDPattern": "drop view if exists .*?`_pseudo_gtid_hint__",
+      "PseudoGTIDMonotonicHint": "asc:",
+      "DetectPseudoGTIDQuery": "",
+      "BinlogEventsChunkSize": 10000,
+      "BufferBinlogEvents": true,
+      "SkipBinlogEventsContaining": [],
+      "ReduceReplicationAnalysisCount": true,
+      "FailureDetectionPeriodBlockMinutes": 60,
+      "RecoveryPollSeconds": 10,
+      "RecoveryPeriodBlockMinutes": 1,
+      "RecoveryPeriodBlockSeconds": 60,
+      "RecoveryIgnoreHostnameFilters": [],
+      "RecoverMasterClusterFilters": [
+        ".*"
+      ],
+      "RecoverIntermediateMasterClusterFilters": [
+        "_intermediate_master_pattern_"
+      ],
+      "OnFailureDetectionProcesses": [
+        "echo 'Detected {failureType} on {failureCluster}. Affected replicas: {countSlaves}' >> /tmp/recovery.log"
+      ],
+      "PreFailoverProcesses": [
+        "echo 'Will recover from {failureType} on {failureCluster}' >> /tmp/recovery.log"
+      ],
+      "PostFailoverProcesses": [
+        "echo '(for all types) Recovered from {failureType} on {failureCluster}. Failed: {failedHost}:{failedPort}; Successor: {successorHost}:{successorPort}' >> /tmp/recovery.log"
+      ],
+      "PostUnsuccessfulFailoverProcesses": [],
+      "PostMasterFailoverProcesses": [
+        "echo 'Recovered from {failureType} on {failureCluster}. Failed: {failedHost}:{failedPort}; Promoted: {successorHost}:{successorPort}' >> /tmp/recovery.log",
+        "vtctlclient -server vtctld:15999 TabletExternallyReparented {successorAlias}"
+      ],
+      "PostIntermediateMasterFailoverProcesses": [
+        "echo 'Recovered from {failureType} on {failureCluster}. Failed: {failedHost}:{failedPort}; Successor: {successorHost}:{successorPort}' >> /tmp/recovery.log"
+      ],
+      "CoMasterRecoveryMustPromoteOtherCoMaster": true,
+      "DetachLostSlavesAfterMasterFailover": true,
+      "ApplyMySQLPromotionAfterMasterFailover": true,
+      "MasterFailoverLostInstancesDowntimeMinutes": 0,
+      "PostponeSlaveRecoveryOnLagMinutes": 0,
+      "OSCIgnoreHostnameFilters": [],
+      "GraphiteAddr": "",
+      "GraphitePath": "",
+      "GraphiteConvertHostnameDotsToUnderscores": true
+    }
+    
+
+# Tablets for keyspaces
+ # range $keyspace
+---
+# Source: vitess/templates/vitess.yaml
+# Orchestrator persistent volume claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: orchestrator-data
+  annotations:
+    volume.alpha.kubernetes.io/storage-class: anything
+    
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Source: vitess/templates/vitess.yaml
+# vtctld
+kind: Service
+apiVersion: v1
+metadata:
+  name: vtctld
+  labels:
+    component: vtctld
+    app: vitess
+spec:
+  ports:
+    - name: web
+      port: 15000
+    - name: grpc
+      port: 15999
+  selector:
+    component: vtctld
+    app: vitess
+  type: ClusterIP
+---
+# Source: vitess/templates/vitess.yaml
+# Orchestrator service
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator
+  labels:
+    component: orchestrator
+    app: vitess
+spec:
+  ports:
+    - port: 80
+      targetPort: 3000
+  selector:
+    component: orchestrator
+    app: vitess
+---
+# Source: vitess/templates/vitess.yaml
+# Headless service for etcd cluster bootstrap.
+kind: Service
+apiVersion: v1
+metadata:
+  name: "etcd-zone1-srv"
+  labels:
+    component: etcd
+    cell: "zone1"
+    app: vitess
+spec:
+  clusterIP: None
+  ports:
+    - name: etcd-server
+      port: 7001
+  selector:
+    component: etcd
+    cell: "zone1"
+    app: vitess
+---
+# Source: vitess/templates/vitess.yaml
+# Headless service for etcd cluster bootstrap.
+kind: Service
+apiVersion: v1
+metadata:
+  name: "etcd-global-srv"
+  labels:
+    component: etcd
+    cell: "global"
+    app: vitess
+spec:
+  clusterIP: None
+  ports:
+    - name: etcd-server
+      port: 7001
+  selector:
+    component: etcd
+    cell: "global"
+    app: vitess
+---
+# Source: vitess/templates/vitess.yaml
+# Headless service for vttablets.
+# This is only required when using StatefulSet, but it doesn't hurt otherwise.
+apiVersion: v1
+kind: Service
+metadata:
+  name: vttablet
+  labels:
+    app: vitess
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  ports:
+    - port: 15002
+      name: web
+    - port: 16002
+      name: grpc
+  clusterIP: None
+  selector:
+    app: vitess
+    component: vttablet
+
+# Create requested resources in each cell.
+---
+# Source: vitess/templates/vitess.yaml
+# etcd
+# Regular service for load balancing client connections.
+kind: Service
+apiVersion: v1
+metadata:
+  name: "etcd-global"
+  labels:
+    component: etcd
+    cell: "global"
+    app: vitess
+spec:
+  ports:
+    - port: 4001
+  selector:
+    component: etcd
+    cell: "global"
+    app: vitess
+---
+# Source: vitess/templates/vitess.yaml
+# vtgate
+kind: Service
+apiVersion: v1
+metadata:
+  name: vtgate-zone1
+  labels:
+    component: vtgate
+    cell: zone1
+    app: vitess
+spec:
+  ports:
+    - name: web
+      port: 15001
+    - name: grpc
+      port: 15991
+  selector:
+    component: vtgate
+    cell: zone1
+    app: vitess
+  type: ClusterIP
+---
+# Source: vitess/templates/vitess.yaml
+# etcd
+# Regular service for load balancing client connections.
+kind: Service
+apiVersion: v1
+metadata:
+  name: "etcd-zone1"
+  labels:
+    component: etcd
+    cell: "zone1"
+    app: vitess
+spec:
+  ports:
+    - port: 4001
+  selector:
+    component: etcd
+    cell: "zone1"
+    app: vitess
+---
+# Source: vitess/templates/vitess.yaml
+apiVersion: extensions/v1beta1
+kind: ReplicaSet
+metadata:
+  name: "etcd-zone1"
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        component: etcd
+        cell: "zone1"
+        app: vitess
+    spec:
+      volumes:
+        - name: certs
+          hostPath: { path: "/etc/ssl/certs/ca-certificates.crt" }
+      containers:
+        - name: etcd
+          image: "vitess/etcd:v2.0.13-lite"
+          volumeMounts:
+            - name: certs
+              readOnly: true
+              # Mount root certs from the host OS into the location
+              # expected for our container OS (Debian):
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            
+          command:
+            - bash
+            - "-c"
+            - |
+              set -ex
+
+              ipaddr=$(hostname -i)
+              peer_url="http://$ipaddr:7001"
+              client_url="http://$ipaddr:4001"
+
+              export ETCD_NAME=$HOSTNAME
+              export ETCD_DATA_DIR=/vt/vtdataroot/etcd-$ETCD_NAME
+              export ETCD_STRICT_RECONFIG_CHECK=true
+              export ETCD_ADVERTISE_CLIENT_URLS=$client_url
+              export ETCD_INITIAL_ADVERTISE_PEER_URLS=$peer_url
+              export ETCD_LISTEN_CLIENT_URLS=$client_url
+              export ETCD_LISTEN_PEER_URLS=$peer_url
+
+              if [ -d $ETCD_DATA_DIR ]; then
+                # We've been restarted with an intact datadir.
+                # Just run without trying to do any bootstrapping.
+                echo "Resuming with existing data dir: $ETCD_DATA_DIR"
+              else
+                # This is the first run for this member.
+
+                # If there's already a functioning cluster, join it.
+                echo "Checking for existing cluster by trying to join..."
+                if result=$(etcdctl -C http://etcd-zone1:4001 member add $ETCD_NAME $peer_url); then
+                  [[ "$result" =~ ETCD_INITIAL_CLUSTER=\"([^\"]*)\" ]] && \
+                  export ETCD_INITIAL_CLUSTER="${BASH_REMATCH[1]}"
+                  export ETCD_INITIAL_CLUSTER_STATE=existing
+                  echo "Joining existing cluster: $ETCD_INITIAL_CLUSTER"
+                else
+                  # Join failed. Assume we're trying to bootstrap.
+
+                  # First register with global topo, if we aren't global.
+                  if [ "zone1" != "global" ]; then
+                    echo "Registering cell "zone1" with global etcd..."
+                    until etcdctl -C "http://etcd-global:4001" \
+                        set "/vt/cells/zone1" "http://etcd-zone1:4001"; do
+                      echo "[$(date)] waiting for global etcd to register cell 'zone1'"
+                      sleep 1
+                    done
+                  fi
+
+                  # Use DNS to bootstrap.
+
+                  # First wait for the desired number of replicas to show up.
+                  echo "Waiting for 3 replicas in SRV record for etcd-zone1-srv..."
+                  until [ $(getsrv etcd-server tcp etcd-zone1-srv | wc -l) -eq 3 ]; do
+                    echo "[$(date)] waiting for 3 entries in SRV record for etcd-zone1-srv"
+                    sleep 1
+                  done
+
+                  export ETCD_DISCOVERY_SRV=etcd-zone1-srv
+                  echo "Bootstrapping with DNS discovery:"
+                  getsrv etcd-server tcp etcd-zone1-srv
+                fi
+              fi
+
+              # We've set up the env as we want it. Now run.
+              exec etcd
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - bash
+                  - "-c"
+                  - |
+                    # Find our member ID.
+                    members=$(etcdctl -C http://etcd-zone1:4001 member list)
+                    if [[ "$members" =~ ^([0-9a-f]+):\ name=$HOSTNAME ]]; then
+                      member_id=${BASH_REMATCH[1]}
+                      echo "Removing $HOSTNAME ($member_id) from etcd-zone1 cluster..."
+                      etcdctl -C http://etcd-zone1:4001 member remove $member_id
+                    fi
+---
+# Source: vitess/templates/vitess.yaml
+apiVersion: extensions/v1beta1
+kind: ReplicaSet
+metadata:
+  name: "etcd-global"
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        component: etcd
+        cell: "global"
+        app: vitess
+    spec:
+      volumes:
+        - name: certs
+          hostPath: { path: "/etc/ssl/certs/ca-certificates.crt" }
+      containers:
+        - name: etcd
+          image: "vitess/etcd:v2.0.13-lite"
+          volumeMounts:
+            - name: certs
+              readOnly: true
+              # Mount root certs from the host OS into the location
+              # expected for our container OS (Debian):
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            
+          command:
+            - bash
+            - "-c"
+            - |
+              set -ex
+
+              ipaddr=$(hostname -i)
+              peer_url="http://$ipaddr:7001"
+              client_url="http://$ipaddr:4001"
+
+              export ETCD_NAME=$HOSTNAME
+              export ETCD_DATA_DIR=/vt/vtdataroot/etcd-$ETCD_NAME
+              export ETCD_STRICT_RECONFIG_CHECK=true
+              export ETCD_ADVERTISE_CLIENT_URLS=$client_url
+              export ETCD_INITIAL_ADVERTISE_PEER_URLS=$peer_url
+              export ETCD_LISTEN_CLIENT_URLS=$client_url
+              export ETCD_LISTEN_PEER_URLS=$peer_url
+
+              if [ -d $ETCD_DATA_DIR ]; then
+                # We've been restarted with an intact datadir.
+                # Just run without trying to do any bootstrapping.
+                echo "Resuming with existing data dir: $ETCD_DATA_DIR"
+              else
+                # This is the first run for this member.
+
+                # If there's already a functioning cluster, join it.
+                echo "Checking for existing cluster by trying to join..."
+                if result=$(etcdctl -C http://etcd-global:4001 member add $ETCD_NAME $peer_url); then
+                  [[ "$result" =~ ETCD_INITIAL_CLUSTER=\"([^\"]*)\" ]] && \
+                  export ETCD_INITIAL_CLUSTER="${BASH_REMATCH[1]}"
+                  export ETCD_INITIAL_CLUSTER_STATE=existing
+                  echo "Joining existing cluster: $ETCD_INITIAL_CLUSTER"
+                else
+                  # Join failed. Assume we're trying to bootstrap.
+
+                  # First register with global topo, if we aren't global.
+                  if [ "global" != "global" ]; then
+                    echo "Registering cell "global" with global etcd..."
+                    until etcdctl -C "http://etcd-global:4001" \
+                        set "/vt/cells/global" "http://etcd-global:4001"; do
+                      echo "[$(date)] waiting for global etcd to register cell 'global'"
+                      sleep 1
+                    done
+                  fi
+
+                  # Use DNS to bootstrap.
+
+                  # First wait for the desired number of replicas to show up.
+                  echo "Waiting for 3 replicas in SRV record for etcd-global-srv..."
+                  until [ $(getsrv etcd-server tcp etcd-global-srv | wc -l) -eq 3 ]; do
+                    echo "[$(date)] waiting for 3 entries in SRV record for etcd-global-srv"
+                    sleep 1
+                  done
+
+                  export ETCD_DISCOVERY_SRV=etcd-global-srv
+                  echo "Bootstrapping with DNS discovery:"
+                  getsrv etcd-server tcp etcd-global-srv
+                fi
+              fi
+
+              # We've set up the env as we want it. Now run.
+              exec etcd
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - bash
+                  - "-c"
+                  - |
+                    # Find our member ID.
+                    members=$(etcdctl -C http://etcd-global:4001 member list)
+                    if [[ "$members" =~ ^([0-9a-f]+):\ name=$HOSTNAME ]]; then
+                      member_id=${BASH_REMATCH[1]}
+                      echo "Removing $HOSTNAME ($member_id) from etcd-global cluster..."
+                      etcdctl -C http://etcd-global:4001 member remove $member_id
+                    fi
+---
+# Source: vitess/templates/vitess.yaml
+# Orchestrator replication controller
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: orchestrator
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: orchestrator
+        app: vitess
+      annotations:
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "init-mysql",
+            "image": "vitess/orchestrator:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "command": ["bash", "-c", "
+              set -ex\n
+              rm -rf /mnt/data/lost+found\n
+              if [[ ! -d /mnt/data/mysql ]]; then\n
+                cp -R /var/lib/mysql/* /mnt/data/\n
+              fi\n
+              chown -R mysql:mysql /mnt/data\n
+            "],
+            "volumeMounts": [
+              {"name": "data", "mountPath": "/mnt/data"}
+            ]
+          }
+        ]'
+    spec:
+      containers:
+        - name: orchestrator
+          image: "vitess/orchestrator:latest"
+          command:
+            - bash
+            - "-c"
+            - |
+              set -x
+              until mysqladmin -h 127.0.0.1 ping; do sleep 1; done
+              exec orchestrator http
+          livenessProbe:
+            httpGet:
+              path: "/"
+              port: 3000
+            initialDelaySeconds: 300
+            timeoutSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: "/"
+              port: 3000
+            timeoutSeconds: 10
+          volumeMounts:
+            - mountPath: /orc/conf
+              name: config
+          resources:
+            limits:
+              cpu: 100m
+              memory: 512Mi
+            
+        - name: mysql
+          image: "vitess/orchestrator:latest"
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: data
+          livenessProbe:
+            exec:
+              command: ["mysqladmin", "ping"]
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+          resources:
+            limits:
+              cpu: 100m
+              memory: 1Gi
+            
+          command: ["mysqld"]
+      volumes:
+        - name: config
+          configMap:
+            name: orchestrator
+        - name: data
+
+          persistentVolumeClaim:
+            claimName: orchestrator-data
+---
+# Source: vitess/templates/vitess.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: vtctld
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: vtctld
+        app: vitess
+      annotations:
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "init-vtdataroot",
+            "image": "vitess/lite:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "command": ["bash", "-c", "
+              set -ex;
+              mkdir -p $VTDATAROOT/tmp;
+              chown vitess:vitess $VTDATAROOT $VTDATAROOT/tmp;
+            "],
+            "volumeMounts": [
+              {
+                "name": "vtdataroot",
+                "mountPath": "/vt/vtdataroot"
+              }
+            ]
+          },
+          {
+            "name": "init-vtctld",
+            "image": "vitess/lite:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "command": ["bash", "-c", "
+              set -ex\n
+              rm -rf /vt/web/*\n
+              cp -R $VTTOP/web/* /vt/web/\n
+              cp /mnt/config/config.js /vt/web/vtctld/\n
+            "],
+            "volumeMounts": [
+              {
+                "name": "config",
+                "mountPath": "/mnt/config"
+              },
+              {
+                "name": "web",
+                "mountPath": "/vt/web"
+              }
+            ]
+          }
+        ]'
+    spec:
+      containers:
+        - name: vtctld
+          image: "vitess/lite:latest"
+          livenessProbe:
+            httpGet:
+              path: /debug/vars
+              port: 15000
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: syslog
+              mountPath: /dev/log
+            - name: vtdataroot
+              mountPath: /vt/vtdataroot
+            - name: web
+              mountPath: /vt/web
+            - name: certs
+              readOnly: true
+              # Mount root certs from the host OS into the location
+              # expected for our container OS (Debian):
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            
+          securityContext:
+            runAsUser: 999
+          command:
+            - bash
+            - "-c"
+            - |
+              set -ex
+              eval exec /vt/bin/vtctld $(cat <<END_OF_COMMAND
+                -cell="zone1"
+                -web_dir="/vt/web/vtctld"
+                -web_dir2="/vt/web/vtctld2/app"
+                -workflow_manager_init
+                -workflow_manager_use_election
+                -log_dir="$VTDATAROOT/tmp"
+                -alsologtostderr
+                -port=15000
+                -grpc_port=15999
+                -service_map="grpc-vtctl"
+                -topo_implementation="etcd"
+                -etcd_global_addrs="http://etcd-global:4001"
+                -backup_storage_implementation="gcs"
+                -gcs_backup_storage_bucket="reti-iot-prod-cluster-backup-bucket"
+                
+              END_OF_COMMAND
+              )
+      volumes:
+        - name: syslog
+          hostPath: {path: /dev/log}
+        - name: vtdataroot
+          emptyDir: {}
+        - name: certs
+          hostPath: { path: "/etc/ssl/certs/ca-certificates.crt" }
+        - name: web
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: vtctld
+---
+# Source: vitess/templates/vitess.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: vtgate-zone1
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        component: vtgate
+        cell: zone1
+        app: vitess
+      annotations:
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "init-vtdataroot",
+            "image": "vitess/lite:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "command": ["bash", "-c", "
+              set -ex;
+              mkdir -p $VTDATAROOT/tmp;
+              chown vitess:vitess $VTDATAROOT $VTDATAROOT/tmp;
+            "],
+            "volumeMounts": [
+              {
+                "name": "vtdataroot",
+                "mountPath": "/vt/vtdataroot"
+              }
+            ]
+          }
+        ]'
+    spec:
+      containers:
+        - name: vtgate
+          image: "vitess/lite:latest"
+          livenessProbe:
+            httpGet:
+              path: /debug/vars
+              port: 15001
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: syslog
+              mountPath: /dev/log
+            - name: vtdataroot
+              mountPath: /vt/vtdataroot
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            
+          securityContext:
+            runAsUser: 999
+          command:
+            - bash
+            - "-c"
+            - |
+              set -ex
+              eval exec /vt/bin/vtgate $(cat <<END_OF_COMMAND
+                -topo_implementation="etcd"
+                -etcd_global_addrs="http://etcd-global:4001"
+                -log_dir="$VTDATAROOT/tmp"
+                -alsologtostderr
+                -port=15001
+                -grpc_port=15991
+                -service_map="grpc-vtgateservice"
+                -cells_to_watch="zone1"
+                -tablet_types_to_wait="MASTER,REPLICA"
+                -gateway_implementation="discoverygateway"
+                -cell="zone1"
+                
+              END_OF_COMMAND
+              )
+      volumes:
+        - name: syslog
+          hostPath: {path: /dev/log}
+        - name: vtdataroot
+          emptyDir: {}
+---
+# Source: vitess/templates/vitess.yaml
+# vttablet StatefulSet
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: "zone1-metering-keyspace-x-80-replica"
+spec:
+  serviceName: vttablet
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: vitess
+        component: vttablet
+        cell: "zone1"
+        keyspace: "metering_keyspace"
+        shard: "x-80"
+        type: "replica"
+      annotations:
+        pod.alpha.kubernetes.io/initialized: "true"
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "init-vtdataroot",
+            "image": "vitess/lite:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "command": ["bash", "-c", "
+              set -ex;
+              mkdir -p $VTDATAROOT/tmp;
+              chown vitess:vitess $VTDATAROOT $VTDATAROOT/tmp;
+            "],
+            "volumeMounts": [
+              {
+                "name": "vtdataroot",
+                "mountPath": "/vt/vtdataroot"
+              }
+            ]
+          },
+          {
+            "name": "init-tablet-uid",
+            "image": "vitess/lite:latest",
+            "securityContext": {"runAsUser": 999},
+            "command": ["bash", "-c", "
+              set -ex\n
+              # Split pod name (via hostname) into prefix and ordinal index.\n
+              hostname=$(hostname -s)\n
+              [[ $hostname =~ ^(.+)-([0-9]+)$ ]] || exit 1\n
+              pod_prefix=${BASH_REMATCH[1]}\n
+              pod_index=${BASH_REMATCH[2]}\n
+              # Prepend cell name since tablet UIDs must be globally unique.\n
+              uid_name=zone1-$pod_prefix\n
+              # Take MD5 hash of cellname-podprefix.\n
+              uid_hash=$(echo -n $uid_name | md5sum | awk \"{print \\$1}\")\n
+              # Take first 24 bits of hash, convert to decimal.\n
+              # Shift left 2 decimal digits, add in index.\n
+              tablet_uid=$((16#${uid_hash:0:6} * 100 + $pod_index))\n
+              # Save UID for other containers to read.\n
+              mkdir -p $VTDATAROOT/init\n
+              echo $tablet_uid > $VTDATAROOT/init/tablet-uid\n
+              # Tell MySQL what hostname to report in SHOW SLAVE HOSTS.\n
+              # Orchestrator looks there, so it should match -tablet_hostname above.\n
+              echo report-host=$hostname.vttablet > $VTDATAROOT/init/report-host.cnf\n
+            "],
+            "volumeMounts": [
+              {
+                "name": "vtdataroot",
+                "mountPath": "/vt/vtdataroot"
+              }
+            ]
+          }
+        ]'
+    spec:
+      containers:
+        - name: vttablet
+          image: "vitess/lite:latest"
+          livenessProbe:
+            httpGet:
+              path: /debug/vars
+              port: 15002
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+          volumeMounts:
+            - name: syslog
+              mountPath: /dev/log
+            - name: vtdataroot
+              mountPath: /vt/vtdataroot
+            - name: certs
+              readOnly: true
+              # Mount root certs from the host OS into the location
+              # expected for our container OS (Debian):
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+          resources:
+            limits:
+              cpu: 200m
+              memory: 1Gi
+            
+          ports:
+            - name: web
+              containerPort: 15002
+            - name: grpc
+              containerPort: 16002
+          securityContext:
+            runAsUser: 999
+          command:
+            - bash
+            - "-c"
+            - |
+              set -ex
+              eval exec /vt/bin/vttablet $(cat <<END_OF_COMMAND
+                -topo_implementation "etcd"
+                -etcd_global_addrs "http://etcd-global:4001"
+                -log_dir "$VTDATAROOT/tmp"
+                -alsologtostderr
+                -port 15002
+                -grpc_port 16002
+                -service_map "grpc-queryservice,grpc-tabletmanager,grpc-updatestream"
+                -tablet-path "zone1-$(cat $VTDATAROOT/init/tablet-uid)"
+      
+                -tablet_hostname "$(hostname).vttablet"
+      
+                -init_keyspace "metering_keyspace"
+                -init_shard "-80"
+                -init_tablet_type "replica"
+                -health_check_interval "5s"
+                -mysqlctl_socket "$VTDATAROOT/mysqlctl.sock"
+                -db-config-app-uname "vt_app"
+                -db-config-app-dbname "vt_metering_keyspace"
+                -db-config-app-charset "utf8"
+                -db-config-dba-uname "vt_dba"
+                -db-config-dba-dbname "vt_metering_keyspace"
+                -db-config-dba-charset "utf8"
+                -db-config-repl-uname "vt_repl"
+                -db-config-repl-dbname "vt_metering_keyspace"
+                -db-config-repl-charset "utf8"
+                -db-config-filtered-uname "vt_filtered"
+                -db-config-filtered-dbname "vt_metering_keyspace"
+                -db-config-filtered-charset "utf8"
+                -enable_semi_sync
+                -enable_replication_reporter
+                -orc_api_url "http://orchestrator/api"
+                -orc_discover_interval "5m"
+                -restore_from_backup
+                -backup_storage_implementation="gcs"
+                -gcs_backup_storage_bucket="reti-iot-prod-cluster-backup-bucket"
+                
+              END_OF_COMMAND
+              )
+        - name: mysql
+          image: "vitess/lite:latest"
+          volumeMounts:
+            - name: syslog
+              mountPath: /dev/log
+            - name: vtdataroot
+              mountPath: /vt/vtdataroot
+          resources:
+            limits:
+              cpu: 200m
+              memory: 1Gi
+            
+          securityContext:
+            runAsUser: 999
+          command:
+            - bash
+            - "-c"
+            - |
+              set -ex
+              eval exec /vt/bin/mysqlctld $(cat <<END_OF_COMMAND
+                -log_dir "$VTDATAROOT/tmp"
+                -alsologtostderr
+                -tablet_uid "$(cat $VTDATAROOT/init/tablet-uid)"
+                -socket_file "$VTDATAROOT/mysqlctl.sock"
+                -db-config-dba-uname "vt_dba"
+                -db-config-dba-charset "utf8"
+                -init_db_sql_file "$VTROOT/config/init_db.sql"
+                
+              END_OF_COMMAND
+              )
+          env:
+            - name: EXTRA_MY_CNF
+      
+              value: "/vt/vtdataroot/init/report-host.cnf:/vt/config/mycnf/master_mysql56.cnf"
+      
+      volumes:
+        - name: syslog
+          hostPath: {path: /dev/log}
+      
+        - name: certs
+          hostPath: { path: "/etc/ssl/certs/ca-certificates.crt" }
+
+  volumeClaimTemplates:
+    - metadata:
+        name: vtdataroot
+        annotations:
+          volume.alpha.kubernetes.io/storage-class: anything
+          
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        
+
+ # if eq $controllerType
+
+ # with $tablet.vttablet
+ # range $tablet
+---
+# Source: vitess/templates/vitess.yaml
+# vttablet StatefulSet
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: "zone1-metering-keyspace-80-x-replica"
+spec:
+  serviceName: vttablet
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: vitess
+        component: vttablet
+        cell: "zone1"
+        keyspace: "metering_keyspace"
+        shard: "80-x"
+        type: "replica"
+      annotations:
+        pod.alpha.kubernetes.io/initialized: "true"
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "init-vtdataroot",
+            "image": "vitess/lite:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "command": ["bash", "-c", "
+              set -ex;
+              mkdir -p $VTDATAROOT/tmp;
+              chown vitess:vitess $VTDATAROOT $VTDATAROOT/tmp;
+            "],
+            "volumeMounts": [
+              {
+                "name": "vtdataroot",
+                "mountPath": "/vt/vtdataroot"
+              }
+            ]
+          },
+          {
+            "name": "init-tablet-uid",
+            "image": "vitess/lite:latest",
+            "securityContext": {"runAsUser": 999},
+            "command": ["bash", "-c", "
+              set -ex\n
+              # Split pod name (via hostname) into prefix and ordinal index.\n
+              hostname=$(hostname -s)\n
+              [[ $hostname =~ ^(.+)-([0-9]+)$ ]] || exit 1\n
+              pod_prefix=${BASH_REMATCH[1]}\n
+              pod_index=${BASH_REMATCH[2]}\n
+              # Prepend cell name since tablet UIDs must be globally unique.\n
+              uid_name=zone1-$pod_prefix\n
+              # Take MD5 hash of cellname-podprefix.\n
+              uid_hash=$(echo -n $uid_name | md5sum | awk \"{print \\$1}\")\n
+              # Take first 24 bits of hash, convert to decimal.\n
+              # Shift left 2 decimal digits, add in index.\n
+              tablet_uid=$((16#${uid_hash:0:6} * 100 + $pod_index))\n
+              # Save UID for other containers to read.\n
+              mkdir -p $VTDATAROOT/init\n
+              echo $tablet_uid > $VTDATAROOT/init/tablet-uid\n
+              # Tell MySQL what hostname to report in SHOW SLAVE HOSTS.\n
+              # Orchestrator looks there, so it should match -tablet_hostname above.\n
+              echo report-host=$hostname.vttablet > $VTDATAROOT/init/report-host.cnf\n
+            "],
+            "volumeMounts": [
+              {
+                "name": "vtdataroot",
+                "mountPath": "/vt/vtdataroot"
+              }
+            ]
+          }
+        ]'
+    spec:
+      containers:
+        - name: vttablet
+          image: "vitess/lite:latest"
+          livenessProbe:
+            httpGet:
+              path: /debug/vars
+              port: 15002
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+          volumeMounts:
+            - name: syslog
+              mountPath: /dev/log
+            - name: vtdataroot
+              mountPath: /vt/vtdataroot
+            - name: certs
+              readOnly: true
+              # Mount root certs from the host OS into the location
+              # expected for our container OS (Debian):
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+          resources:
+            limits:
+              cpu: 200m
+              memory: 1Gi
+            
+          ports:
+            - name: web
+              containerPort: 15002
+            - name: grpc
+              containerPort: 16002
+          securityContext:
+            runAsUser: 999
+          command:
+            - bash
+            - "-c"
+            - |
+              set -ex
+              eval exec /vt/bin/vttablet $(cat <<END_OF_COMMAND
+                -topo_implementation "etcd"
+                -etcd_global_addrs "http://etcd-global:4001"
+                -log_dir "$VTDATAROOT/tmp"
+                -alsologtostderr
+                -port 15002
+                -grpc_port 16002
+                -service_map "grpc-queryservice,grpc-tabletmanager,grpc-updatestream"
+                -tablet-path "zone1-$(cat $VTDATAROOT/init/tablet-uid)"
+      
+                -tablet_hostname "$(hostname).vttablet"
+      
+                -init_keyspace "metering_keyspace"
+                -init_shard "80-"
+                -init_tablet_type "replica"
+                -health_check_interval "5s"
+                -mysqlctl_socket "$VTDATAROOT/mysqlctl.sock"
+                -db-config-app-uname "vt_app"
+                -db-config-app-dbname "vt_metering_keyspace"
+                -db-config-app-charset "utf8"
+                -db-config-dba-uname "vt_dba"
+                -db-config-dba-dbname "vt_metering_keyspace"
+                -db-config-dba-charset "utf8"
+                -db-config-repl-uname "vt_repl"
+                -db-config-repl-dbname "vt_metering_keyspace"
+                -db-config-repl-charset "utf8"
+                -db-config-filtered-uname "vt_filtered"
+                -db-config-filtered-dbname "vt_metering_keyspace"
+                -db-config-filtered-charset "utf8"
+                -enable_semi_sync
+                -enable_replication_reporter
+                -orc_api_url "http://orchestrator/api"
+                -orc_discover_interval "5m"
+                -restore_from_backup
+                -backup_storage_implementation="gcs"
+                -gcs_backup_storage_bucket="reti-iot-prod-cluster-backup-bucket"
+                
+              END_OF_COMMAND
+              )
+        - name: mysql
+          image: "vitess/lite:latest"
+          volumeMounts:
+            - name: syslog
+              mountPath: /dev/log
+            - name: vtdataroot
+              mountPath: /vt/vtdataroot
+          resources:
+            limits:
+              cpu: 200m
+              memory: 1Gi
+            
+          securityContext:
+            runAsUser: 999
+          command:
+            - bash
+            - "-c"
+            - |
+              set -ex
+              eval exec /vt/bin/mysqlctld $(cat <<END_OF_COMMAND
+                -log_dir "$VTDATAROOT/tmp"
+                -alsologtostderr
+                -tablet_uid "$(cat $VTDATAROOT/init/tablet-uid)"
+                -socket_file "$VTDATAROOT/mysqlctl.sock"
+                -db-config-dba-uname "vt_dba"
+                -db-config-dba-charset "utf8"
+                -init_db_sql_file "$VTROOT/config/init_db.sql"
+                
+              END_OF_COMMAND
+              )
+          env:
+            - name: EXTRA_MY_CNF
+      
+              value: "/vt/vtdataroot/init/report-host.cnf:/vt/config/mycnf/master_mysql56.cnf"
+      
+      volumes:
+        - name: syslog
+          hostPath: {path: /dev/log}
+      
+        - name: certs
+          hostPath: { path: "/etc/ssl/certs/ca-certificates.crt" }
+
+  volumeClaimTemplates:
+    - metadata:
+        name: vtdataroot
+        annotations:
+          volume.alpha.kubernetes.io/storage-class: anything
+          
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        
+
+ # if eq $controllerType
+
+ # with $tablet.vttablet
+ # range $tablet
+ # range $shard
+ # range $keyspace
+
+ # range $cell
+---
+# Source: vitess/templates/vitess.yaml
+# Create global resources.
+---
+# Source: vitess/templates/vitess.yaml
+---
+---
+# Source: vitess/templates/vitess.yaml
+# Tablets for keyspaces

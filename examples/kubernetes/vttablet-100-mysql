@@ -1,0 +1,202 @@
+I1227 12:55:32.136397       9 mysqlctld.go:80] mycnf file (/vt/vtdataroot/vt_0000000100/my.cnf) doesn't exist, initializing
+I1227 12:55:32.136931       9 dbconfigs.go:213] DBConfigs: {
+  "App": {
+    "host": "",
+    "port": 0,
+    "uname": "",
+    "pass": "****",
+    "dbname": "",
+    "unix_socket": "",
+    "charset": "",
+    "flags": 0,
+    "ssl_ca": "",
+    "ssl_ca_path": "",
+    "ssl_cert": "",
+    "ssl_key": ""
+  },
+  "AppDebug": {
+    "host": "",
+    "port": 0,
+    "uname": "",
+    "pass": "****",
+    "dbname": "",
+    "unix_socket": "",
+    "charset": "",
+    "flags": 0,
+    "ssl_ca": "",
+    "ssl_ca_path": "",
+    "ssl_cert": "",
+    "ssl_key": ""
+  },
+  "AllPrivs": {
+    "host": "",
+    "port": 0,
+    "uname": "",
+    "pass": "****",
+    "dbname": "",
+    "unix_socket": "",
+    "charset": "",
+    "flags": 0,
+    "ssl_ca": "",
+    "ssl_ca_path": "",
+    "ssl_cert": "",
+    "ssl_key": ""
+  },
+  "Dba": {
+    "host": "",
+    "port": 0,
+    "uname": "vt_dba",
+    "pass": "****",
+    "dbname": "",
+    "unix_socket": "/vt/vtdataroot/vt_0000000100/mysql.sock",
+    "charset": "utf8",
+    "flags": 0,
+    "ssl_ca": "",
+    "ssl_ca_path": "",
+    "ssl_cert": "",
+    "ssl_key": ""
+  },
+  "Filtered": {
+    "host": "",
+    "port": 0,
+    "uname": "",
+    "pass": "****",
+    "dbname": "",
+    "unix_socket": "",
+    "charset": "",
+    "flags": 0,
+    "ssl_ca": "",
+    "ssl_ca_path": "",
+    "ssl_cert": "",
+    "ssl_key": ""
+  },
+  "Repl": {
+    "host": "",
+    "port": 0,
+    "uname": "",
+    "pass": "****",
+    "dbname": "",
+    "unix_socket": "",
+    "charset": "",
+    "flags": 0,
+    "ssl_ca": "",
+    "ssl_ca_path": "",
+    "ssl_cert": "",
+    "ssl_key": ""
+  },
+  "SidecarDBName": "_vt"
+}
+I1227 12:55:32.137018       9 mysqld.go:473] mysqlctl.Init
+I1227 12:55:32.137036       9 mysqld.go:703] creating directory /vt/vtdataroot/vt_0000000100
+I1227 12:55:32.137114       9 mysqld.go:736] creating directory /vt/vtdataroot/vt_0000000100/data
+I1227 12:55:32.137178       9 mysqld.go:736] creating directory /vt/vtdataroot/vt_0000000100/innodb
+I1227 12:55:32.137238       9 mysqld.go:736] creating directory /vt/vtdataroot/vt_0000000100/relay-logs
+I1227 12:55:32.137284       9 mysqld.go:736] creating directory /vt/vtdataroot/vt_0000000100/bin-logs
+I1227 12:55:32.137338       9 mysqld.go:713] creating directory /vt/vtdataroot/vt_0000000100/data
+I1227 12:55:32.137364       9 mysqld.go:713] creating directory /vt/vtdataroot/vt_0000000100/innodb/data
+I1227 12:55:32.137415       9 mysqld.go:713] creating directory /vt/vtdataroot/vt_0000000100/innodb/logs
+I1227 12:55:32.137479       9 mysqld.go:713] creating directory /vt/vtdataroot/vt_0000000100/tmp
+I1227 12:55:32.137519       9 mysqld.go:713] creating directory /vt/vtdataroot/vt_0000000100/relay-logs
+I1227 12:55:32.137538       9 mysqld.go:713] creating directory /vt/vtdataroot/vt_0000000100/bin-logs
+I1227 12:55:32.137583       9 mysqld.go:593] make_mycnf hook doesn't exist, reading template files
+I1227 12:55:32.138141       9 mysqld.go:437] execCmd: /usr/sbin/mysqld /usr/sbin/mysqld [--version]
+I1227 12:55:32.677975       9 mysqld.go:451] execCmd: /usr/sbin/mysqld output: /usr/sbin/mysqld  Ver 5.7.20 for Linux on x86_64 (MySQL Community Server (GPL))
+I1227 12:55:32.678075       9 mysqld.go:557] Installing data dir with mysqld --initialize-insecure
+I1227 12:55:32.678113       9 mysqld.go:437] execCmd: /usr/sbin/mysqld /usr/sbin/mysqld [--defaults-file=/vt/vtdataroot/vt_0000000100/my.cnf --basedir=/usr --initialize-insecure]
+I1227 12:55:39.739831       9 mysqld.go:451] execCmd: /usr/sbin/mysqld output: 
+I1227 12:55:39.740532       9 mysqld.go:214] Mysqld.Start(1514379339): No mysqld_start hook, running mysqld_safe directly
+I1227 12:55:39.740711       9 mysqld.go:236] Mysqld.Start(1514379339) &exec.Cmd{Path:"/usr/bin/mysqld_safe", Args:[]string{"/usr/bin/mysqld_safe", "--defaults-file=/vt/vtdataroot/vt_0000000100/my.cnf"}, Env:[]string{"LD_LIBRARY_PATH=/usr/lib/mysql"}, Dir:"/usr", Stdin:io.Reader(nil), Stdout:io.Writer(nil), Stderr:io.Writer(nil), ExtraFiles:[]*os.File(nil), SysProcAttr:(*syscall.SysProcAttr)(nil), Process:(*os.Process)(nil), ProcessState:(*os.ProcessState)(nil), ctx:context.Context(nil), lookPathErr:error(nil), finished:false, childFiles:[]*os.File(nil), closeAfterStart:[]io.Closer(nil), closeAfterWait:[]io.Closer(nil), goroutine:[]func() error(nil), errch:(chan error)(nil), waitDone:(chan struct {})(nil)}
+I1227 12:55:39.757943       9 mysqld.go:303] Waiting for mysqld socket file (/vt/vtdataroot/vt_0000000100/mysql.sock) to be ready...
+I1227 12:55:41.360045       9 mysqld.go:254] Mysqld.Start(1514379339) stdout: 2017-12-27T12:55:41.359594Z mysqld_safe Logging to '/vt/vtdataroot/vt_0000000100/error.log'.
+I1227 12:55:41.415126       9 mysqld.go:254] Mysqld.Start(1514379339) stdout: 2017-12-27T12:55:41.414777Z mysqld_safe Starting mysqld daemon with databases from /vt/vtdataroot/vt_0000000100/data
+I1227 12:55:42.533243       9 mysqld.go:437] execCmd: /usr/bin/mysql /usr/bin/mysql [--defaults-extra-file=/tmp/example770397143 --batch]
+I1227 12:55:42.599585       9 mysqld.go:451] execCmd: /usr/bin/mysql output: 
+I1227 12:55:42.600091       9 grpc_server.go:114] Setting grpc max message size to 4194304
+I1227 12:55:42.600166       9 service_map.go:65] Registering mysqlctl for grpc, disable it with -grpc-mysqlctl service_map parameter
+I1227 12:55:42.600321       9 unix_socket.go:53] Listening on socket file /vt/vtdataroot/mysqlctl.sock for gRPC
+I1227 12:55:42.833325       9 mysqld.go:336] Mysqld.Shutdown
+I1227 12:55:42.833379       9 mysqld.go:374] No mysqld_shutdown hook, running mysqladmin directly
+I1227 12:55:42.833555       9 mysqld.go:437] execCmd: /usr/bin/mysqladmin /usr/bin/mysqladmin [--defaults-extra-file=/tmp/example227756874 shutdown]
+I1227 12:55:46.448040       9 mysqld.go:254] Mysqld.Start(1514379339) stdout: 2017-12-27T12:55:46.447716Z mysqld_safe mysqld from pid file /vt/vtdataroot/vt_0000000100/mysql.pid ended
+I1227 12:55:46.448712       9 mysqld.go:267] Mysqld.Start(1514379339) exit: <nil>
+I1227 12:55:46.987814       9 mysqld.go:451] execCmd: /usr/bin/mysqladmin output: 
+I1227 12:55:46.987926       9 mysqld.go:412] Mysqld.Shutdown: waiting for socket file (/vt/vtdataroot/vt_0000000100/mysql.sock) and pid file (/vt/vtdataroot/vt_0000000100/mysql.pid) to disappear
+I1227 12:55:47.541183       9 mysqld.go:679] Mysqld.ReinitConfig
+I1227 12:55:47.541692       9 mysqld.go:593] make_mycnf hook doesn't exist, reading template files
+I1227 13:00:45.650551       9 mysqld.go:214] Mysqld.Start(1514379645): No mysqld_start hook, running mysqld_safe directly
+I1227 13:00:45.650644       9 mysqld.go:236] Mysqld.Start(1514379645) &exec.Cmd{Path:"/usr/bin/mysqld_safe", Args:[]string{"/usr/bin/mysqld_safe", "--defaults-file=/vt/vtdataroot/vt_0000000100/my.cnf", "--skip-grant-tables", "--skip-networking"}, Env:[]string{"LD_LIBRARY_PATH=/usr/lib/mysql"}, Dir:"/usr", Stdin:io.Reader(nil), Stdout:io.Writer(nil), Stderr:io.Writer(nil), ExtraFiles:[]*os.File(nil), SysProcAttr:(*syscall.SysProcAttr)(nil), Process:(*os.Process)(nil), ProcessState:(*os.ProcessState)(nil), ctx:context.Context(nil), lookPathErr:error(nil), finished:false, childFiles:[]*os.File(nil), closeAfterStart:[]io.Closer(nil), closeAfterWait:[]io.Closer(nil), goroutine:[]func() error(nil), errch:(chan error)(nil), waitDone:(chan struct {})(nil)}
+I1227 13:00:45.651133       9 mysqld.go:303] Waiting for mysqld socket file (/vt/vtdataroot/vt_0000000100/mysql.sock) to be ready...
+I1227 13:00:47.151958       9 mysqld.go:254] Mysqld.Start(1514379645) stdout: 2017-12-27T13:00:47.151615Z mysqld_safe Logging to '/vt/vtdataroot/vt_0000000100/error.log'.
+I1227 13:00:47.244525       9 mysqld.go:254] Mysqld.Start(1514379645) stdout: 2017-12-27T13:00:47.244213Z mysqld_safe Starting mysqld daemon with databases from /vt/vtdataroot/vt_0000000100/data
+I1227 13:00:55.462305       9 mysqld.go:174] mysql_upgrade output: Checking server version.
+Running queries to upgrade MySQL server.
+Checking system database.
+mysql.columns_priv                                 OK
+mysql.db                                           OK
+mysql.engine_cost                                  OK
+mysql.event                                        OK
+mysql.func                                         OK
+mysql.general_log                                  OK
+mysql.gtid_executed                                OK
+mysql.help_category                                OK
+mysql.help_keyword                                 OK
+mysql.help_relation                                OK
+mysql.help_topic                                   OK
+mysql.innodb_index_stats                           OK
+mysql.innodb_table_stats                           OK
+mysql.ndb_binlog_index                             OK
+mysql.plugin                                       OK
+mysql.proc                                         OK
+mysql.procs_priv                                   OK
+mysql.proxies_priv                                 OK
+mysql.server_cost                                  OK
+mysql.servers                                      OK
+mysql.slave_master_info                            OK
+mysql.slave_relay_log_info                         OK
+mysql.slave_worker_info                            OK
+mysql.slow_log                                     OK
+mysql.tables_priv                                  OK
+mysql.time_zone                                    OK
+mysql.time_zone_leap_second                        OK
+mysql.time_zone_name                               OK
+mysql.time_zone_transition                         OK
+mysql.time_zone_transition_type                    OK
+mysql.user                                         OK
+The sys schema is already up to date (version 1.5.1).
+Checking databases.
+_vt.local_metadata                                 OK
+_vt.reparent_journal                               OK
+_vt.shard_metadata                                 OK
+sys.sys_config                                     OK
+vt_metering_keyspace.products                      OK
+vt_metering_keyspace.tbl_invites                   OK
+vt_metering_keyspace.tbl_metering_device_measures  OK
+vt_metering_keyspace.tbl_metering_device_models    OK
+vt_metering_keyspace.tbl_metering_device_sensors   OK
+vt_metering_keyspace.tbl_metering_device_vendors   OK
+vt_metering_keyspace.tbl_metering_devices          OK
+vt_metering_keyspace.tbl_metering_group_data       OK
+vt_metering_keyspace.tbl_metering_module_data      OK
+vt_metering_keyspace.tbl_permissions               OK
+vt_metering_keyspace.tbl_project_keys              OK
+vt_metering_keyspace.tbl_projects                  OK
+vt_metering_keyspace.tbl_site_members              OK
+vt_metering_keyspace.tbl_site_permissions          OK
+vt_metering_keyspace.tbl_sites                     OK
+vt_metering_keyspace.tbl_sub_metering_device_sensors OK
+vt_metering_keyspace.tbl_sub_metering_devices      OK
+vt_metering_keyspace.tbl_users                     OK
+Upgrade process completed successfully.
+Checking if update is needed.
+I1227 13:00:56.053267       9 mysqld.go:336] Mysqld.Shutdown
+I1227 13:00:56.054517       9 mysqld.go:374] No mysqld_shutdown hook, running mysqladmin directly
+I1227 13:00:56.054708       9 mysqld.go:437] execCmd: /usr/bin/mysqladmin /usr/bin/mysqladmin [--defaults-extra-file=/tmp/example656708876 shutdown]
+I1227 13:00:59.644335       9 mysqld.go:254] Mysqld.Start(1514379645) stdout: 2017-12-27T13:00:59.644031Z mysqld_safe mysqld from pid file /vt/vtdataroot/vt_0000000100/mysql.pid ended
+I1227 13:00:59.645150       9 mysqld.go:267] Mysqld.Start(1514379645) exit: <nil>
+I1227 13:01:00.069639       9 mysqld.go:451] execCmd: /usr/bin/mysqladmin output: 
+I1227 13:01:00.069673       9 mysqld.go:412] Mysqld.Shutdown: waiting for socket file (/vt/vtdataroot/vt_0000000100/mysql.sock) and pid file (/vt/vtdataroot/vt_0000000100/mysql.pid) to disappear
+I1227 13:01:00.345987       9 mysqld.go:214] Mysqld.Start(1514379660): No mysqld_start hook, running mysqld_safe directly
+I1227 13:01:00.346514       9 mysqld.go:236] Mysqld.Start(1514379660) &exec.Cmd{Path:"/usr/bin/mysqld_safe", Args:[]string{"/usr/bin/mysqld_safe", "--defaults-file=/vt/vtdataroot/vt_0000000100/my.cnf"}, Env:[]string{"LD_LIBRARY_PATH=/usr/lib/mysql"}, Dir:"/usr", Stdin:io.Reader(nil), Stdout:io.Writer(nil), Stderr:io.Writer(nil), ExtraFiles:[]*os.File(nil), SysProcAttr:(*syscall.SysProcAttr)(nil), Process:(*os.Process)(nil), ProcessState:(*os.ProcessState)(nil), ctx:context.Context(nil), lookPathErr:error(nil), finished:false, childFiles:[]*os.File(nil), closeAfterStart:[]io.Closer(nil), closeAfterWait:[]io.Closer(nil), goroutine:[]func() error(nil), errch:(chan error)(nil), waitDone:(chan struct {})(nil)}
+I1227 13:01:00.348114       9 mysqld.go:303] Waiting for mysqld socket file (/vt/vtdataroot/vt_0000000100/mysql.sock) to be ready...
+I1227 13:01:01.842190       9 mysqld.go:254] Mysqld.Start(1514379660) stdout: 2017-12-27T13:01:01.841874Z mysqld_safe Logging to '/vt/vtdataroot/vt_0000000100/error.log'.
+I1227 13:01:01.935312       9 mysqld.go:254] Mysqld.Start(1514379660) stdout: 2017-12-27T13:01:01.934956Z mysqld_safe Starting mysqld daemon with databases from /vt/vtdataroot/vt_0000000100/data

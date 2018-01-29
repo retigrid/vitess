@@ -1,0 +1,9 @@
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 12:27 ?        00:00:00 sh -c mkdir -p $VTDATAROOT/tmp && chown -R vitess /vt su -p -c "/vt/bin/mysqlctld -log_dir $VTDATAROOT/tmp -alsologtostderr -tablet_uid 100 -socket_file $VTDATAROOT/mysqlctl.sock -db-config-dba-uname vt_dba -db-config-dba-charset utf8 -init_db_sql_file $VTROOT/config/init_db.sql" vitess
+root         7     1  0 12:27 ?        00:00:00 su -p -c /vt/bin/mysqlctld -log_dir /vt/vtdataroot/tmp -alsologtostderr -tablet_uid 100 -socket_file /vt/vtdataroot/mysqlctl.sock -db-config-dba-uname vt_dba -db-config-dba-charset utf8 -init_db_sql_file /vt/config/init_db.sql vitess
+vitess       8     7  0 12:27 ?        00:00:00 sh -c /vt/bin/mysqlctld -log_dir /vt/vtdataroot/tmp -alsologtostderr -tablet_uid 100 -socket_file /vt/vtdataroot/mysqlctl.sock -db-config-dba-uname vt_dba -db-config-dba-charset utf8 -init_db_sql_file /vt/config/init_db.sql
+vitess       9     8  0 12:27 ?        00:00:00 /vt/bin/mysqlctld -log_dir /vt/vtdataroot/tmp -alsologtostderr -tablet_uid 100 -socket_file /vt/vtdataroot/mysqlctl.sock -db-config-dba-uname vt_dba -db-config-dba-charset utf8 -init_db_sql_file /vt/config/init_db.sql
+vitess      42     9  0 12:27 ?        00:00:00 /bin/sh /usr/bin/mysqld_safe --defaults-file=/vt/vtdataroot/vt_0000000100/my.cnf
+vitess     927    42  1 12:27 ?        00:00:14 /usr/sbin/mysqld --defaults-file=/vt/vtdataroot/vt_0000000100/my.cnf --basedir=/usr --datadir=/vt/vtdataroot/vt_0000000100/data --plugin-dir=/usr/lib/mysql/plugin --log-error=/vt/vtdataroot/vt_0000000100/error.log --pid-file=/vt/vtdataroot/vt_0000000100/mysql.pid --socket=/vt/vtdataroot/vt_0000000100/mysql.sock --port=3306
+root      1024     0  0 12:43 ?        00:00:00 bash -il
+root      1032  1024  0 12:45 ?        00:00:00 ps -ef

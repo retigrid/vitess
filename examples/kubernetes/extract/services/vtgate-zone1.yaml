@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: vitess
+    cell: zone1
+    component: vtgate
+  name: vtgate-zone1
+  selfLink: /api/v1/namespaces/default/services/vtgate-zone1
+spec:
+  clusterIP: <unknown>
+  ports:
+  - name: web
+    port: 15001
+    protocol: TCP
+    targetPort: 15001
+  - name: grpc
+    port: 15991
+    protocol: TCP
+    targetPort: 15991
+  selector:
+    app: vitess
+    cell: zone1
+    component: vtgate
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

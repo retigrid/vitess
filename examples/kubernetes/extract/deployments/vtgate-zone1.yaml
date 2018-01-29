@@ -1,0 +1,101 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  creationTimestamp: null
+  generation: 1
+  labels:
+    app: vitess
+    cell: zone1
+    component: vtgate
+  name: vtgate-zone1
+  selfLink: /apis/extensions/v1beta1/namespaces/default/deployments/vtgate-zone1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vitess
+      cell: zone1
+      component: vtgate
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        pod.alpha.kubernetes.io/init-containers: '[{"name":"init-vtdataroot","image":"vitess/lite:latest","command":["bash","-c","
+          set -ex; mkdir -p $VTDATAROOT/tmp; chown vitess:vitess $VTDATAROOT $VTDATAROOT/tmp;
+          "],"resources":{},"volumeMounts":[{"name":"vtdataroot","mountPath":"/vt/vtdataroot"}],"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File","imagePullPolicy":"IfNotPresent"}]'
+        pod.beta.kubernetes.io/init-containers: '[{"name":"init-vtdataroot","image":"vitess/lite:latest","command":["bash","-c","
+          set -ex; mkdir -p $VTDATAROOT/tmp; chown vitess:vitess $VTDATAROOT $VTDATAROOT/tmp;
+          "],"resources":{},"volumeMounts":[{"name":"vtdataroot","mountPath":"/vt/vtdataroot"}],"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File","imagePullPolicy":"IfNotPresent"}]'
+      creationTimestamp: null
+      labels:
+        app: vitess
+        cell: zone1
+        component: vtgate
+    spec:
+      containers:
+      - command:
+        - bash
+        - -c
+        - "set -ex\neval exec /vt/bin/vtgate $(cat <<END_OF_COMMAND\n  -topo_implementation=\"etcd\"\n
+          \ -etcd_global_addrs=\"http://etcd-global:4001\"\n  -log_dir=\"$VTDATAROOT/tmp\"\n
+          \ -alsologtostderr\n  -port=15001\n  -grpc_port=15991\n  -service_map=\"grpc-vtgateservice\"\n
+          \ -cells_to_watch=\"zone1\"\n  -tablet_types_to_wait=\"MASTER,REPLICA\"\n
+          \ -gateway_implementation=\"discoverygateway\"\n  -cell=\"zone1\"\n  \nEND_OF_COMMAND\n)\n"
+        image: vitess/lite:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /debug/vars
+            port: 15001
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: vtgate
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          runAsUser: 999
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /dev/log
+          name: syslog
+        - mountPath: /vt/vtdataroot
+          name: vtdataroot
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - command:
+        - bash
+        - -c
+        - ' set -ex; mkdir -p $VTDATAROOT/tmp; chown vitess:vitess $VTDATAROOT $VTDATAROOT/tmp; '
+        image: vitess/lite:latest
+        imagePullPolicy: IfNotPresent
+        name: init-vtdataroot
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /vt/vtdataroot
+          name: vtdataroot
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - hostPath:
+          path: /dev/log
+        name: syslog
+      - emptyDir: {}
+        name: vtdataroot
+status: {}

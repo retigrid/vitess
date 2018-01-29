@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  creationTimestamp: null
+  labels:
+    app: vitess
+  name: vttablet
+  selfLink: /api/v1/namespaces/default/services/vttablet
+spec:
+  clusterIP: None
+  ports:
+  - name: web
+    port: 15002
+    protocol: TCP
+    targetPort: 15002
+  - name: grpc
+    port: 16002
+    protocol: TCP
+    targetPort: 16002
+  selector:
+    app: vitess
+    component: vttablet
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

@@ -1,0 +1,133 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  creationTimestamp: null
+  generation: 1
+  labels:
+    app: vitess
+    component: vtctld
+  name: vtctld
+  selfLink: /apis/extensions/v1beta1/namespaces/default/deployments/vtctld
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vitess
+      component: vtctld
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        pod.alpha.kubernetes.io/init-containers: '[{"name":"init-vtdataroot","image":"vitess/lite:latest","command":["bash","-c","
+          set -ex; mkdir -p $VTDATAROOT/tmp; chown vitess:vitess $VTDATAROOT $VTDATAROOT/tmp;
+          "],"resources":{},"volumeMounts":[{"name":"vtdataroot","mountPath":"/vt/vtdataroot"}],"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File","imagePullPolicy":"IfNotPresent"},{"name":"init-vtctld","image":"vitess/lite:latest","command":["bash","-c","
+          set -ex\n rm -rf /vt/web/*\n cp -R $VTTOP/web/* /vt/web/\n cp /mnt/config/config.js
+          /vt/web/vtctld/\n "],"resources":{},"volumeMounts":[{"name":"config","mountPath":"/mnt/config"},{"name":"web","mountPath":"/vt/web"}],"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File","imagePullPolicy":"IfNotPresent"}]'
+        pod.beta.kubernetes.io/init-containers: '[{"name":"init-vtdataroot","image":"vitess/lite:latest","command":["bash","-c","
+          set -ex; mkdir -p $VTDATAROOT/tmp; chown vitess:vitess $VTDATAROOT $VTDATAROOT/tmp;
+          "],"resources":{},"volumeMounts":[{"name":"vtdataroot","mountPath":"/vt/vtdataroot"}],"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File","imagePullPolicy":"IfNotPresent"},{"name":"init-vtctld","image":"vitess/lite:latest","command":["bash","-c","
+          set -ex\n rm -rf /vt/web/*\n cp -R $VTTOP/web/* /vt/web/\n cp /mnt/config/config.js
+          /vt/web/vtctld/\n "],"resources":{},"volumeMounts":[{"name":"config","mountPath":"/mnt/config"},{"name":"web","mountPath":"/vt/web"}],"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File","imagePullPolicy":"IfNotPresent"}]'
+      creationTimestamp: null
+      labels:
+        app: vitess
+        component: vtctld
+    spec:
+      containers:
+      - command:
+        - bash
+        - -c
+        - "set -ex\neval exec /vt/bin/vtctld $(cat <<END_OF_COMMAND\n  -cell=\"zone1\"\n
+          \ -web_dir=\"/vt/web/vtctld\"\n  -web_dir2=\"/vt/web/vtctld2/app\"\n  -workflow_manager_init\n
+          \ -workflow_manager_use_election\n  -log_dir=\"$VTDATAROOT/tmp\"\n  -alsologtostderr\n
+          \ -port=15000\n  -grpc_port=15999\n  -service_map=\"grpc-vtctl\"\n  -topo_implementation=\"etcd\"\n
+          \ -etcd_global_addrs=\"http://etcd-global:4001\"\n  -backup_storage_implementation=\"gcs\"\n
+          \ -gcs_backup_storage_bucket=\"wizdear-iot-cluster-backup-bucket\"\n  \nEND_OF_COMMAND\n)\n"
+        image: vitess/lite:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /debug/vars
+            port: 15000
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: vtctld
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          runAsUser: 999
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /dev/log
+          name: syslog
+        - mountPath: /vt/vtdataroot
+          name: vtdataroot
+        - mountPath: /vt/web
+          name: web
+        - mountPath: /etc/ssl/certs/ca-certificates.crt
+          name: certs
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - command:
+        - bash
+        - -c
+        - ' set -ex; mkdir -p $VTDATAROOT/tmp; chown vitess:vitess $VTDATAROOT $VTDATAROOT/tmp; '
+        image: vitess/lite:latest
+        imagePullPolicy: IfNotPresent
+        name: init-vtdataroot
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /vt/vtdataroot
+          name: vtdataroot
+      - command:
+        - bash
+        - -c
+        - " set -ex\n rm -rf /vt/web/*\n cp -R $VTTOP/web/* /vt/web/\n cp /mnt/config/config.js
+          /vt/web/vtctld/\n "
+        image: vitess/lite:latest
+        imagePullPolicy: IfNotPresent
+        name: init-vtctld
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /mnt/config
+          name: config
+        - mountPath: /vt/web
+          name: web
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - hostPath:
+          path: /dev/log
+        name: syslog
+      - emptyDir: {}
+        name: vtdataroot
+      - hostPath:
+          path: /etc/ssl/certs/ca-certificates.crt
+        name: certs
+      - emptyDir: {}
+        name: web
+      - configMap:
+          defaultMode: 420
+          name: vtctld
+        name: config
+status: {}
