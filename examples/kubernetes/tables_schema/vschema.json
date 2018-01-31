@@ -1,0 +1,86 @@
+{
+  "sharded": true,
+  "vindexes": {
+    "hash": {
+      "type": "hash"
+    },
+    "unicode_loose_md5": {
+      "type": "unicode_loose_md5"
+    }
+  },
+  "tables": {
+    "tbl_metering_module_data": {
+      "column_vindexes": [
+        {
+          "column": "serial_id",
+          "name": "unicode_loose_md5"
+        }
+      ]
+    },
+    "tbl_metering_group_data": {
+      "column_vindexes": [
+        {
+          "column": "serial_id",
+          "name": "unicode_loose_md5"
+        }
+      ]
+    },
+    "tbl_metering_group_data_5_min": {
+      "column_vindexes": [
+        {
+          "column": "serial_id",
+          "name": "unicode_loose_md5"
+        }
+      ]
+    },
+    "tbl_metering_group_data_15_min": {
+      "column_vindexes": [
+        {
+          "column": "serial_id",
+          "name": "unicode_loose_md5"
+        }
+      ]
+    },
+    "tbl_metering_group_data_30_min": {
+      "column_vindexes": [
+        {
+          "column": "serial_id",
+          "name": "unicode_loose_md5"
+        }
+      ]
+    },
+    "tbl_metering_group_data_1_hour": {
+      "column_vindexes": [
+        {
+          "column": "serial_id",
+          "name": "unicode_loose_md5"
+        }
+      ]
+    },
+    "tbl_metering_group_data_1_day": {
+      "column_vindexes": [
+        {
+          "column": "serial_id",
+          "name": "unicode_loose_md5"
+        }
+      ]
+    },
+    "tbl_metering_group_data_1_month": {
+      "column_vindexes": [
+        {
+          "column": "serial_id",
+          "name": "unicode_loose_md5"
+        }
+      ]
+    },
+    "tbl_metering_group_data_1_year": {
+      "column_vindexes": [
+        {
+          "column": "serial_id",
+          "name": "unicode_loose_md5"
+        }
+      ]
+    }
+  }
+}
+
