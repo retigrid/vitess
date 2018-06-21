@@ -289,6 +289,9 @@ spec:
         -db-config-filtered-uname "vt_filtered"
         -db-config-filtered-dbname "vt_{{$keyspace.name}}"
         -db-config-filtered-charset "utf8"
+        -db-config-allprivs-uname "vt_allprivs"
+        -db-config-allprivs-dbname "vt_{{$keyspace.name}}"
+        -db-config-allprivs-charset "utf8"
         -enable_semi_sync
         -enable_replication_reporter
 {{ include "backup-flags" $config.backup | indent 8 }}
@@ -402,6 +405,14 @@ spec:
 # affinity pod spec
 affinity:
 {{ include "node-affinity" $region | indent 2 }}
+#Added by Ethan.Jo to assign vitess vttablet to vitess node pool
+  nodeAffinity:
+		requiredDuringSchedulingIgnoredDuringExecution:
+			nodeSelectorTerms:
+			- matchExpressions:
+				- key: "cloud.google.com/gke-nodepool"
+					operator: In
+					values: ["vitess"]
 
   podAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:

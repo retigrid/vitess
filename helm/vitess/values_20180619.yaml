@@ -83,11 +83,6 @@ topology:
                 - type: "replica"
                   vttablet:
                     replicas: 2
-                    mysqlResources:
-                    # common production values 4CPU/8-16Gi RAM
-                      limits:
-                        cpu: 150m
-                        memory: 1.5Gi
                     dataVolumeClaimAnnotations:
                     dataVolumeClaimSpec:
                       # pd-ssd (Google Cloud)
@@ -101,11 +96,6 @@ topology:
                 - type: "rdonly"
                   vttablet:
                     replicas: 1
-                    mysqlResources:
-                    # common production values 4CPU/8-16Gi RAM
-                      limits:
-                        cpu: 150m
-                        memory: 1.5Gi
                     dataVolumeClaimAnnotations:
                     dataVolumeClaimSpec:
                       # pd-ssd (Google Cloud)

@@ -83,39 +83,29 @@ topology:
                 - type: "replica"
                   vttablet:
                     replicas: 2
-                    mysqlResources:
-                    # common production values 4CPU/8-16Gi RAM
-                      limits:
-                        cpu: 150m
-                        memory: 1.5Gi
                     dataVolumeClaimAnnotations:
                     dataVolumeClaimSpec:
                       # pd-ssd (Google Cloud)
                       # managed-premium (Azure)
                       # standard (AWS) - not sure what the default class is for ssd
-                      storageClassName: "standard"
+                      storageClassName: "ssd"
                       accessModes: ["ReadWriteOnce"]
                       resources:
                         requests:
-                          storage: "602Gi"
+                          storage: "100Gi"
                 - type: "rdonly"
                   vttablet:
                     replicas: 1
-                    mysqlResources:
-                    # common production values 4CPU/8-16Gi RAM
-                      limits:
-                        cpu: 150m
-                        memory: 1.5Gi
                     dataVolumeClaimAnnotations:
                     dataVolumeClaimSpec:
                       # pd-ssd (Google Cloud)
                       # managed-premium (Azure)
                       # standard (AWS) - not sure what the default class is for ssd
-                      storageClassName: "standard"
+                      storageClassName: "ssd"
                       accessModes: ["ReadWriteOnce"]
                       resources:
                         requests:
-                          storage: "602Gi"
+                          storage: "100Gi"
 
       # set failure-domain.beta.kubernetes.io/region
       # region: eastus

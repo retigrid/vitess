@@ -1,0 +1,1426 @@
+
+---
+# Source: vitess/templates/vitess.yaml
+# shared ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vitess-cm
+data:
+  backup.backup_storage_implementation: gcs
+  backup.gcs_backup_storage_bucket: reti-iot-prod-cluster-backup-bucket
+  backup.gcs_backup_storage_root: 
+  backup.s3_backup_aws_region: 
+  backup.s3_backup_storage_bucket: 
+  backup.s3_backup_storage_root: 
+  backup.s3_backup_server_side_encryption: 
+
+  db.flavor: mysql
+ # end with config
+---
+# Source: vitess/templates/vitess.yaml
+# create one controller per cell
+# set tuple values to more recognizable variables# define image to use###################################
+# vtctld Service
+###################################
+kind: Service
+apiVersion: v1
+metadata:
+  name: vtctld
+  labels:
+    component: vtctld
+    app: vitess
+spec:
+  ports:
+    - name: web
+      port: 15000
+    - name: grpc
+      port: 15999
+  selector:
+    component: vtctld
+    app: vitess
+  type: ClusterIP
+---
+# Source: vitess/templates/vitess.yaml
+# create a single vttablet service
+apiVersion: v1
+kind: Service
+metadata:
+  name: vttablet
+  labels:
+    app: vitess
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  publishNotReadyAddresses: true
+  ports:
+    - port: 15002
+      name: web
+    - port: 16002
+      name: grpc
+  clusterIP: None
+  selector:
+    app: vitess
+    component: vttablet
+---
+# Source: vitess/templates/vitess.yaml
+# create a pool of vtgates per cell
+# set tuple values to more recognizable variables# define image to use###################################
+# vtgate Service
+###################################
+kind: Service
+apiVersion: v1
+metadata:
+  name: vtgate-zone1
+  labels:
+    component: vtgate
+    cell: zone1
+    app: vitess
+spec:
+  ports:
+    - name: web
+      port: 15001
+    - name: grpc
+      port: 15991
+
+    - name: mysql
+      port: 3306
+
+  selector:
+    component: vtgate
+    cell: zone1
+    app: vitess
+  type: LoadBalancer
+---
+# Source: vitess/templates/vitess.yaml
+###################################
+# vtctld Service + Deployment
+###################################
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: vtctld
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vitess
+      component: vtctld
+  template:
+    metadata:
+      labels:
+        app: vitess
+        component: vtctld
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 2000
+        runAsNonRoot: true
+      # set tuple values to more recognizable variables
+      containers:
+        - name: vtctld
+          image: vitess/vtctld:latest
+          readinessProbe:
+            httpGet:
+              path: /debug/health
+              port: 15000
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /debug/status
+              port: 15000
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          env:
+            
+          volumeMounts:
+            
+
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          command:
+            - bash
+            - "-c"
+            - |
+              set -ex;
+
+              
+
+              eval exec /vt/bin/vtctld $(cat <<END_OF_COMMAND
+                -cell="zone1"
+                -web_dir="/vt/web/vtctld"
+                -web_dir2="/vt/web/vtctld2/app"
+                -workflow_manager_init
+                -workflow_manager_use_election
+                -logtostderr=true
+                -stderrthreshold=0
+                -port=15000
+                -grpc_port=15999
+                -service_map="grpc-vtctl"
+                -topo_implementation="etcd2"
+                -topo_global_server_address="etcd-global-client.default:2379"
+                -topo_global_root=/vitess/global
+                
+              END_OF_COMMAND
+              )
+
+      volumes:
+---
+# Source: vitess/templates/vitess.yaml
+###################################
+# vtgate Deployment
+###################################
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: vtgate-zone1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vitess
+      component: vtgate
+      cell: zone1
+  template:
+    metadata:
+      labels:
+        app: vitess
+        component: vtgate
+        cell: zone1
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 2000
+        runAsNonRoot: true
+      # set tuple values to more recognizable variables# affinity pod spec
+      affinity:
+        
+      
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          # prefer to be scheduled with same-cell vttablets
+          - weight: 10
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "vitess"
+                  component: "vttablet"
+                  cell: "zone1"
+      
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          # prefer to stay away from other same-cell vtgates
+          - weight: 10
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "vitess"
+                  component: "vtgate"
+                  cell: "zone1"
+
+
+      initContainers:
+        - name: init-mysql-creds
+          image: "vitess/vtgate:latest"
+          volumeMounts:
+            - name: creds
+              mountPath: "/mysqlcreds"
+          env:
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: reti-password
+                  key: password
+        
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+              creds=$(cat <<END_OF_COMMAND
+              {
+                "reti_dev": [
+                  {
+                    "UserData": "reti_dev",
+                    "Password": "$MYSQL_PASSWORD"
+                  }
+                ],
+                "vt_appdebug": []
+              }
+              END_OF_COMMAND
+              )
+              echo $creds > /mysqlcreds/creds.json
+
+
+      containers:
+        - name: vtgate
+          image: vitess/vtgate:latest
+          readinessProbe:
+            httpGet:
+              path: /debug/health
+              port: 15001
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /debug/status
+              port: 15001
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: creds
+              mountPath: "/mysqlcreds"
+
+          resources:
+            limits:
+              cpu: 150m
+              memory: 512Mi
+
+          command:
+            - bash
+            - "-c"
+            - |
+              set -ex
+
+              eval exec /vt/bin/vtgate $(cat <<END_OF_COMMAND
+                -topo_implementation=etcd2
+                -topo_global_server_address="etcd-global-client.default:2379"
+                -topo_global_root=/vitess/global
+                -logtostderr=true
+                -stderrthreshold=0
+                -port=15001
+                -grpc_port=15991
+
+                -mysql_server_port=3306
+                -mysql_auth_server_static_file="/mysqlcreds/creds.json"
+
+                -service_map="grpc-vtgateservice"
+                -cells_to_watch="zone1"
+                -tablet_types_to_wait="MASTER,REPLICA"
+                -gateway_implementation="discoverygateway"
+                -cell="zone1"
+                
+              END_OF_COMMAND
+              )
+      volumes:
+        - name: creds
+          emptyDir: {}
+
+
+###################################
+# optional HPA for vtgate
+###################################
+---
+# Source: vitess/templates/vitess.yaml
+# set tuple values to more recognizable variables# sanitize inputs to create tablet name# define images to use###################################
+# vttablet StatefulSet
+###################################
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: "zone1-metering-0-replica"
+spec:
+  serviceName: vttablet
+  replicas: 2
+  podManagementPolicy: Parallel
+  updateStrategy: 
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: vitess
+      component: vttablet
+      cell: "zone1"
+      keyspace: "metering"
+      shard: "0"
+      type: "replica"
+  template:
+    metadata:
+      labels:
+        app: vitess
+        component: vttablet
+        cell: "zone1"
+        keyspace: "metering"
+        shard: "0"
+        type: "replica"
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 2000
+        runAsNonRoot: true
+      # set tuple values to more recognizable variables# affinity pod spec
+      affinity:
+        
+      
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          # prefer to be scheduled with same-cell vtgates
+          - weight: 10
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "vitess"
+                  component: "vtgate"
+                  cell: "zone1"
+      
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          # strongly prefer to stay away from same shard vttablets
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "vitess"
+                  component: "vttablet"
+                  cell: "zone1"
+                  keyspace: "metering"
+                  shard: "0"
+          
+          # prefer to stay away from any vttablets
+          - weight: 10
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "vitess"
+                  component: "vttablet"
+
+      initContainers:
+        - name: "init-mysql"
+          image: "vitess/mysqlctld:latest"
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: "/vtdataroot"
+            - name: vt
+              mountPath: "/vttmp"
+        
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+              # set up the directories vitess needs
+              mkdir -p /vttmp/bin
+              mkdir -p /vtdataroot/tabletdata
+        
+              # copy necessary assets to the volumeMounts
+              cp /vt/bin/mysqlctld /vttmp/bin/
+              cp -R /vt/config /vttmp/
+        - name: init-vttablet
+          image: "vitess/vtctl:latest"
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: "/vtdataroot"
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+              # Split pod name (via hostname) into prefix and ordinal index.
+              hostname=$(hostname -s)
+              [[ $hostname =~ ^(.+)-([0-9]+)$ ]] || exit 1
+              pod_prefix=${BASH_REMATCH[1]}
+              pod_index=${BASH_REMATCH[2]}
+              # Prepend cell name since tablet UIDs must be globally unique.
+              uid_name=zone1-$pod_prefix
+              # Take MD5 hash of cellname-podprefix.
+              uid_hash=$(echo -n $uid_name | md5sum | awk "{print \$1}")
+              # Take first 24 bits of hash, convert to decimal.
+              # Shift left 2 decimal digits, add in index.
+              tablet_uid=$((16#${uid_hash:0:6} * 100 + $pod_index))
+              # Save UID for other containers to read.
+              echo $tablet_uid > /vtdataroot/tabletdata/tablet-uid
+              # Tell MySQL what hostname to report in SHOW SLAVE HOSTS.
+              echo report-host=$hostname.vttablet > /vtdataroot/tabletdata/report-host.cnf
+              # Orchestrator looks there, so it should match -tablet_hostname above.
+        
+              # make sure that etcd is initialized
+              eval exec /vt/bin/vtctl $(cat <<END_OF_COMMAND
+                -topo_implementation="etcd2"
+                -topo_global_root=/vitess/global
+                -topo_global_server_address="etcd-global-client.default:2379"
+                -logtostderr=true
+                -stderrthreshold=0
+                UpdateCellInfo
+                -server_address="etcd-global-client.default:2379"
+                "zone1"
+              END_OF_COMMAND
+              )
+
+      containers:
+        - name: mysql
+          image: "mysql:5.7.20"
+          imagePullPolicy: Always
+          readinessProbe:
+            exec:
+              command: ["mysqladmin", "ping", "-uroot", "--socket=/vtdataroot/tabletdata/mysql.sock"]
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+        
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: /vtdataroot
+            - name: vt
+              mountPath: /vt
+          resources:
+              limits:
+                cpu: 150m
+                memory: 1Gi
+          env:
+            - name: VTROOT
+              value: "/vt"
+            - name: VTDATAROOT
+              value: "/vtdataroot"
+            - name: GOBIN
+              value: "/vt/bin"
+            - name: VT_MYSQL_ROOT
+              value: "/usr"
+            - name: PKG_CONFIG_PATH
+              value: "/vt/lib"
+        
+            - name: VT_DB_FLAVOR
+              valueFrom:
+                configMapKeyRef:
+                  name: vitess-cm
+                  key: db.flavor
+        
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+        
+              if [ "$VT_DB_FLAVOR" = "percona" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "mysql" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "maria" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mariadb.cnf
+              
+              fi
+              
+              export EXTRA_MY_CNF="$FLAVOR_MYCNF:/vtdataroot/tabletdata/report-host.cnf:/vt/config/mycnf/rbr.cnf"
+        
+              eval exec /vt/bin/mysqlctld $(cat <<END_OF_COMMAND
+                -logtostderr=true
+                -stderrthreshold=0
+                -tablet_dir "tabletdata"
+                -tablet_uid "$(cat /vtdataroot/tabletdata/tablet-uid)"
+                -socket_file "/vtdataroot/mysqlctl.sock"
+                -db-config-dba-uname "vt_dba"
+                -db-config-dba-charset "utf8"
+                -init_db_sql_file "/vt/config/init_db.sql"
+        
+              END_OF_COMMAND
+              )
+        - name: vttablet
+          image: "vitess/vttablet:latest"
+          readinessProbe:
+            httpGet:
+              path: /debug/health
+              port: 15002
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /debug/status
+              port: 15002
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: "/vtdataroot"
+            
+        
+          resources:
+              limits:
+                cpu: 150m
+                memory: 1Gi
+          ports:
+            - name: web
+              containerPort: 15002
+            - name: grpc
+              containerPort: 16002
+          env:
+            - name: VTROOT
+              value: "/vt"
+            - name: VTDATAROOT
+              value: "/vtdataroot"
+            - name: GOBIN
+              value: "/vt/bin"
+            - name: VT_MYSQL_ROOT
+              value: "/usr"
+            - name: PKG_CONFIG_PATH
+              value: "/vt/lib"
+            
+        
+            - name: VT_DB_FLAVOR
+              valueFrom:
+                configMapKeyRef:
+                  name: vitess-cm
+                  key: db.flavor
+        
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+        
+              if [ "$VT_DB_FLAVOR" = "percona" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "mysql" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "maria" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mariadb.cnf
+              
+              fi
+              
+              export EXTRA_MY_CNF="$FLAVOR_MYCNF:/vtdataroot/tabletdata/report-host.cnf:/vt/config/mycnf/rbr.cnf"
+              
+              
+              eval exec /vt/bin/vttablet $(cat <<END_OF_COMMAND
+                -topo_implementation="etcd2"
+                -topo_global_server_address="etcd-global-client.default:2379"
+                -topo_global_root=/vitess/global
+                -logtostderr
+                -port 15002
+                -grpc_port 16002
+                -service_map "grpc-queryservice,grpc-tabletmanager,grpc-updatestream"
+                -tablet_dir "tabletdata"
+                -tablet-path "zone1-$(cat /vtdataroot/tabletdata/tablet-uid)"
+                -tablet_hostname "$(hostname).vttablet"
+                -init_keyspace "metering"
+                -init_shard "0"
+                -init_tablet_type "replica"
+                -health_check_interval "5s"
+                -mysqlctl_socket "/vtdataroot/mysqlctl.sock"
+                -db-config-app-uname "vt_app"
+                -db-config-app-dbname "vt_metering"
+                -db-config-app-charset "utf8"
+                -db-config-dba-uname "vt_dba"
+                -db-config-dba-dbname "vt_metering"
+                -db-config-dba-charset "utf8"
+                -db-config-repl-uname "vt_repl"
+                -db-config-repl-dbname "vt_metering"
+                -db-config-repl-charset "utf8"
+                -db-config-filtered-uname "vt_filtered"
+                -db-config-filtered-dbname "vt_metering"
+                -db-config-filtered-charset "utf8"
+                -enable_semi_sync
+                -enable_replication_reporter
+                
+              END_OF_COMMAND
+              )
+        - name: error-log
+          image: busybox
+          command: ["/bin/sh"]
+          args: ["-c", "tail -n+1 -F /vtdataroot/tabletdata/error.log"]
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: /vtdataroot
+        - name: slow-log
+          image: busybox
+          command: ["/bin/sh"]
+          args: ["-c", "tail -n+1 -F /vtdataroot/tabletdata/slow.log"]
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: /vtdataroot
+
+      volumes:
+        - name: vt
+          emptyDir: {}
+        
+
+  volumeClaimTemplates:
+    - metadata:
+        name: vtdataroot
+        annotations:
+          null
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 602Gi
+        storageClassName: standard
+---
+# Source: vitess/templates/vitess.yaml
+# set tuple values to more recognizable variables# sanitize inputs to create tablet name# define images to use###################################
+# vttablet StatefulSet
+###################################
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: "zone1-info-0-replica"
+spec:
+  serviceName: vttablet
+  replicas: 2
+  podManagementPolicy: Parallel
+  updateStrategy: 
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: vitess
+      component: vttablet
+      cell: "zone1"
+      keyspace: "info"
+      shard: "0"
+      type: "replica"
+  template:
+    metadata:
+      labels:
+        app: vitess
+        component: vttablet
+        cell: "zone1"
+        keyspace: "info"
+        shard: "0"
+        type: "replica"
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 2000
+        runAsNonRoot: true
+      # set tuple values to more recognizable variables# affinity pod spec
+      affinity:
+        
+      
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          # prefer to be scheduled with same-cell vtgates
+          - weight: 10
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "vitess"
+                  component: "vtgate"
+                  cell: "zone1"
+      
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          # strongly prefer to stay away from same shard vttablets
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "vitess"
+                  component: "vttablet"
+                  cell: "zone1"
+                  keyspace: "info"
+                  shard: "0"
+          
+          # prefer to stay away from any vttablets
+          - weight: 10
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "vitess"
+                  component: "vttablet"
+
+      initContainers:
+        - name: "init-mysql"
+          image: "vitess/mysqlctld:latest"
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: "/vtdataroot"
+            - name: vt
+              mountPath: "/vttmp"
+        
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+              # set up the directories vitess needs
+              mkdir -p /vttmp/bin
+              mkdir -p /vtdataroot/tabletdata
+        
+              # copy necessary assets to the volumeMounts
+              cp /vt/bin/mysqlctld /vttmp/bin/
+              cp -R /vt/config /vttmp/
+        - name: init-vttablet
+          image: "vitess/vtctl:latest"
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: "/vtdataroot"
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+              # Split pod name (via hostname) into prefix and ordinal index.
+              hostname=$(hostname -s)
+              [[ $hostname =~ ^(.+)-([0-9]+)$ ]] || exit 1
+              pod_prefix=${BASH_REMATCH[1]}
+              pod_index=${BASH_REMATCH[2]}
+              # Prepend cell name since tablet UIDs must be globally unique.
+              uid_name=zone1-$pod_prefix
+              # Take MD5 hash of cellname-podprefix.
+              uid_hash=$(echo -n $uid_name | md5sum | awk "{print \$1}")
+              # Take first 24 bits of hash, convert to decimal.
+              # Shift left 2 decimal digits, add in index.
+              tablet_uid=$((16#${uid_hash:0:6} * 100 + $pod_index))
+              # Save UID for other containers to read.
+              echo $tablet_uid > /vtdataroot/tabletdata/tablet-uid
+              # Tell MySQL what hostname to report in SHOW SLAVE HOSTS.
+              echo report-host=$hostname.vttablet > /vtdataroot/tabletdata/report-host.cnf
+              # Orchestrator looks there, so it should match -tablet_hostname above.
+        
+              # make sure that etcd is initialized
+              eval exec /vt/bin/vtctl $(cat <<END_OF_COMMAND
+                -topo_implementation="etcd2"
+                -topo_global_root=/vitess/global
+                -topo_global_server_address="etcd-global-client.default:2379"
+                -logtostderr=true
+                -stderrthreshold=0
+                UpdateCellInfo
+                -server_address="etcd-global-client.default:2379"
+                "zone1"
+              END_OF_COMMAND
+              )
+
+      containers:
+        - name: mysql
+          image: "mysql:5.7.20"
+          imagePullPolicy: Always
+          readinessProbe:
+            exec:
+              command: ["mysqladmin", "ping", "-uroot", "--socket=/vtdataroot/tabletdata/mysql.sock"]
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+        
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: /vtdataroot
+            - name: vt
+              mountPath: /vt
+          resources:
+              limits:
+                cpu: 150m
+                memory: 1Gi
+          env:
+            - name: VTROOT
+              value: "/vt"
+            - name: VTDATAROOT
+              value: "/vtdataroot"
+            - name: GOBIN
+              value: "/vt/bin"
+            - name: VT_MYSQL_ROOT
+              value: "/usr"
+            - name: PKG_CONFIG_PATH
+              value: "/vt/lib"
+        
+            - name: VT_DB_FLAVOR
+              valueFrom:
+                configMapKeyRef:
+                  name: vitess-cm
+                  key: db.flavor
+        
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+        
+              if [ "$VT_DB_FLAVOR" = "percona" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "mysql" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "maria" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mariadb.cnf
+              
+              fi
+              
+              export EXTRA_MY_CNF="$FLAVOR_MYCNF:/vtdataroot/tabletdata/report-host.cnf:/vt/config/mycnf/rbr.cnf"
+        
+              eval exec /vt/bin/mysqlctld $(cat <<END_OF_COMMAND
+                -logtostderr=true
+                -stderrthreshold=0
+                -tablet_dir "tabletdata"
+                -tablet_uid "$(cat /vtdataroot/tabletdata/tablet-uid)"
+                -socket_file "/vtdataroot/mysqlctl.sock"
+                -db-config-dba-uname "vt_dba"
+                -db-config-dba-charset "utf8"
+                -init_db_sql_file "/vt/config/init_db.sql"
+        
+              END_OF_COMMAND
+              )
+        - name: vttablet
+          image: "vitess/vttablet:latest"
+          readinessProbe:
+            httpGet:
+              path: /debug/health
+              port: 15002
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /debug/status
+              port: 15002
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: "/vtdataroot"
+            
+        
+          resources:
+              limits:
+                cpu: 150m
+                memory: 1Gi
+          ports:
+            - name: web
+              containerPort: 15002
+            - name: grpc
+              containerPort: 16002
+          env:
+            - name: VTROOT
+              value: "/vt"
+            - name: VTDATAROOT
+              value: "/vtdataroot"
+            - name: GOBIN
+              value: "/vt/bin"
+            - name: VT_MYSQL_ROOT
+              value: "/usr"
+            - name: PKG_CONFIG_PATH
+              value: "/vt/lib"
+            
+        
+            - name: VT_DB_FLAVOR
+              valueFrom:
+                configMapKeyRef:
+                  name: vitess-cm
+                  key: db.flavor
+        
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+        
+              if [ "$VT_DB_FLAVOR" = "percona" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "mysql" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "maria" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mariadb.cnf
+              
+              fi
+              
+              export EXTRA_MY_CNF="$FLAVOR_MYCNF:/vtdataroot/tabletdata/report-host.cnf:/vt/config/mycnf/rbr.cnf"
+              
+              
+              eval exec /vt/bin/vttablet $(cat <<END_OF_COMMAND
+                -topo_implementation="etcd2"
+                -topo_global_server_address="etcd-global-client.default:2379"
+                -topo_global_root=/vitess/global
+                -logtostderr
+                -port 15002
+                -grpc_port 16002
+                -service_map "grpc-queryservice,grpc-tabletmanager,grpc-updatestream"
+                -tablet_dir "tabletdata"
+                -tablet-path "zone1-$(cat /vtdataroot/tabletdata/tablet-uid)"
+                -tablet_hostname "$(hostname).vttablet"
+                -init_keyspace "info"
+                -init_shard "0"
+                -init_tablet_type "replica"
+                -health_check_interval "5s"
+                -mysqlctl_socket "/vtdataroot/mysqlctl.sock"
+                -db-config-app-uname "vt_app"
+                -db-config-app-dbname "vt_info"
+                -db-config-app-charset "utf8"
+                -db-config-dba-uname "vt_dba"
+                -db-config-dba-dbname "vt_info"
+                -db-config-dba-charset "utf8"
+                -db-config-repl-uname "vt_repl"
+                -db-config-repl-dbname "vt_info"
+                -db-config-repl-charset "utf8"
+                -db-config-filtered-uname "vt_filtered"
+                -db-config-filtered-dbname "vt_info"
+                -db-config-filtered-charset "utf8"
+                -enable_semi_sync
+                -enable_replication_reporter
+                
+              END_OF_COMMAND
+              )
+        - name: error-log
+          image: busybox
+          command: ["/bin/sh"]
+          args: ["-c", "tail -n+1 -F /vtdataroot/tabletdata/error.log"]
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: /vtdataroot
+        - name: slow-log
+          image: busybox
+          command: ["/bin/sh"]
+          args: ["-c", "tail -n+1 -F /vtdataroot/tabletdata/slow.log"]
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: /vtdataroot
+
+      volumes:
+        - name: vt
+          emptyDir: {}
+        
+
+  volumeClaimTemplates:
+    - metadata:
+        name: vtdataroot
+        annotations:
+          null
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: standard
+       # range $tablet
+     # range $shard
+---
+# Source: vitess/templates/vitess.yaml
+# set tuple values to more recognizable variables# sanitize inputs to create tablet name# define images to use###################################
+# vttablet StatefulSet
+###################################
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: "zone1-metering-0-rdonly"
+spec:
+  serviceName: vttablet
+  replicas: 1
+  podManagementPolicy: Parallel
+  updateStrategy: 
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: vitess
+      component: vttablet
+      cell: "zone1"
+      keyspace: "metering"
+      shard: "0"
+      type: "rdonly"
+  template:
+    metadata:
+      labels:
+        app: vitess
+        component: vttablet
+        cell: "zone1"
+        keyspace: "metering"
+        shard: "0"
+        type: "rdonly"
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 2000
+        runAsNonRoot: true
+      # set tuple values to more recognizable variables# affinity pod spec
+      affinity:
+        
+      
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          # prefer to be scheduled with same-cell vtgates
+          - weight: 10
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "vitess"
+                  component: "vtgate"
+                  cell: "zone1"
+      
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          # strongly prefer to stay away from same shard vttablets
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "vitess"
+                  component: "vttablet"
+                  cell: "zone1"
+                  keyspace: "metering"
+                  shard: "0"
+          
+          # prefer to stay away from any vttablets
+          - weight: 10
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "vitess"
+                  component: "vttablet"
+
+      initContainers:
+        - name: "init-mysql"
+          image: "vitess/mysqlctld:latest"
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: "/vtdataroot"
+            - name: vt
+              mountPath: "/vttmp"
+        
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+              # set up the directories vitess needs
+              mkdir -p /vttmp/bin
+              mkdir -p /vtdataroot/tabletdata
+        
+              # copy necessary assets to the volumeMounts
+              cp /vt/bin/mysqlctld /vttmp/bin/
+              cp -R /vt/config /vttmp/
+        - name: init-vttablet
+          image: "vitess/vtctl:latest"
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: "/vtdataroot"
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+              # Split pod name (via hostname) into prefix and ordinal index.
+              hostname=$(hostname -s)
+              [[ $hostname =~ ^(.+)-([0-9]+)$ ]] || exit 1
+              pod_prefix=${BASH_REMATCH[1]}
+              pod_index=${BASH_REMATCH[2]}
+              # Prepend cell name since tablet UIDs must be globally unique.
+              uid_name=zone1-$pod_prefix
+              # Take MD5 hash of cellname-podprefix.
+              uid_hash=$(echo -n $uid_name | md5sum | awk "{print \$1}")
+              # Take first 24 bits of hash, convert to decimal.
+              # Shift left 2 decimal digits, add in index.
+              tablet_uid=$((16#${uid_hash:0:6} * 100 + $pod_index))
+              # Save UID for other containers to read.
+              echo $tablet_uid > /vtdataroot/tabletdata/tablet-uid
+              # Tell MySQL what hostname to report in SHOW SLAVE HOSTS.
+              echo report-host=$hostname.vttablet > /vtdataroot/tabletdata/report-host.cnf
+              # Orchestrator looks there, so it should match -tablet_hostname above.
+        
+              # make sure that etcd is initialized
+              eval exec /vt/bin/vtctl $(cat <<END_OF_COMMAND
+                -topo_implementation="etcd2"
+                -topo_global_root=/vitess/global
+                -topo_global_server_address="etcd-global-client.default:2379"
+                -logtostderr=true
+                -stderrthreshold=0
+                UpdateCellInfo
+                -server_address="etcd-global-client.default:2379"
+                "zone1"
+              END_OF_COMMAND
+              )
+
+      containers:
+        - name: mysql
+          image: "mysql:5.7.20"
+          imagePullPolicy: Always
+          readinessProbe:
+            exec:
+              command: ["mysqladmin", "ping", "-uroot", "--socket=/vtdataroot/tabletdata/mysql.sock"]
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+        
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: /vtdataroot
+            - name: vt
+              mountPath: /vt
+          resources:
+              limits:
+                cpu: 150m
+                memory: 1Gi
+          env:
+            - name: VTROOT
+              value: "/vt"
+            - name: VTDATAROOT
+              value: "/vtdataroot"
+            - name: GOBIN
+              value: "/vt/bin"
+            - name: VT_MYSQL_ROOT
+              value: "/usr"
+            - name: PKG_CONFIG_PATH
+              value: "/vt/lib"
+        
+            - name: VT_DB_FLAVOR
+              valueFrom:
+                configMapKeyRef:
+                  name: vitess-cm
+                  key: db.flavor
+        
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+        
+              if [ "$VT_DB_FLAVOR" = "percona" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "mysql" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "maria" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mariadb.cnf
+              
+              fi
+              
+              export EXTRA_MY_CNF="$FLAVOR_MYCNF:/vtdataroot/tabletdata/report-host.cnf:/vt/config/mycnf/rbr.cnf"
+        
+              eval exec /vt/bin/mysqlctld $(cat <<END_OF_COMMAND
+                -logtostderr=true
+                -stderrthreshold=0
+                -tablet_dir "tabletdata"
+                -tablet_uid "$(cat /vtdataroot/tabletdata/tablet-uid)"
+                -socket_file "/vtdataroot/mysqlctl.sock"
+                -db-config-dba-uname "vt_dba"
+                -db-config-dba-charset "utf8"
+                -init_db_sql_file "/vt/config/init_db.sql"
+        
+              END_OF_COMMAND
+              )
+        - name: vttablet
+          image: "vitess/vttablet:latest"
+          readinessProbe:
+            httpGet:
+              path: /debug/health
+              port: 15002
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /debug/status
+              port: 15002
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: "/vtdataroot"
+            
+        
+          resources:
+              limits:
+                cpu: 150m
+                memory: 1Gi
+          ports:
+            - name: web
+              containerPort: 15002
+            - name: grpc
+              containerPort: 16002
+          env:
+            - name: VTROOT
+              value: "/vt"
+            - name: VTDATAROOT
+              value: "/vtdataroot"
+            - name: GOBIN
+              value: "/vt/bin"
+            - name: VT_MYSQL_ROOT
+              value: "/usr"
+            - name: PKG_CONFIG_PATH
+              value: "/vt/lib"
+            
+        
+            - name: VT_DB_FLAVOR
+              valueFrom:
+                configMapKeyRef:
+                  name: vitess-cm
+                  key: db.flavor
+        
+          command: ["bash"]
+          args:
+            - "-c"
+            - |
+              set -ex
+        
+              if [ "$VT_DB_FLAVOR" = "percona" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "mysql" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mysql56.cnf
+              
+              elif [ "$VT_DB_FLAVOR" = "maria" ]; then
+                FLAVOR_MYCNF=/vt/config/mycnf/master_mariadb.cnf
+              
+              fi
+              
+              export EXTRA_MY_CNF="$FLAVOR_MYCNF:/vtdataroot/tabletdata/report-host.cnf:/vt/config/mycnf/rbr.cnf"
+              
+              
+              eval exec /vt/bin/vttablet $(cat <<END_OF_COMMAND
+                -topo_implementation="etcd2"
+                -topo_global_server_address="etcd-global-client.default:2379"
+                -topo_global_root=/vitess/global
+                -logtostderr
+                -port 15002
+                -grpc_port 16002
+                -service_map "grpc-queryservice,grpc-tabletmanager,grpc-updatestream"
+                -tablet_dir "tabletdata"
+                -tablet-path "zone1-$(cat /vtdataroot/tabletdata/tablet-uid)"
+                -tablet_hostname "$(hostname).vttablet"
+                -init_keyspace "metering"
+                -init_shard "0"
+                -init_tablet_type "rdonly"
+                -health_check_interval "5s"
+                -mysqlctl_socket "/vtdataroot/mysqlctl.sock"
+                -db-config-app-uname "vt_app"
+                -db-config-app-dbname "vt_metering"
+                -db-config-app-charset "utf8"
+                -db-config-dba-uname "vt_dba"
+                -db-config-dba-dbname "vt_metering"
+                -db-config-dba-charset "utf8"
+                -db-config-repl-uname "vt_repl"
+                -db-config-repl-dbname "vt_metering"
+                -db-config-repl-charset "utf8"
+                -db-config-filtered-uname "vt_filtered"
+                -db-config-filtered-dbname "vt_metering"
+                -db-config-filtered-charset "utf8"
+                -enable_semi_sync
+                -enable_replication_reporter
+                
+              END_OF_COMMAND
+              )
+        - name: error-log
+          image: busybox
+          command: ["/bin/sh"]
+          args: ["-c", "tail -n+1 -F /vtdataroot/tabletdata/error.log"]
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: /vtdataroot
+        - name: slow-log
+          image: busybox
+          command: ["/bin/sh"]
+          args: ["-c", "tail -n+1 -F /vtdataroot/tabletdata/slow.log"]
+          volumeMounts:
+            - name: vtdataroot
+              mountPath: /vtdataroot
+
+      volumes:
+        - name: vt
+          emptyDir: {}
+        
+
+  volumeClaimTemplates:
+    - metadata:
+        name: vtdataroot
+        annotations:
+          null
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 602Gi
+        storageClassName: standard
+       # range $tablet
+     # range $shard
+   # range $keyspace
+
+ # range $cell
+---
+# Source: vitess/templates/vitess.yaml
+# Create global resources.
+---
+# Source: vitess/templates/vitess.yaml
+# create an etcd cluster for the global topology# set tuple values to more recognizable variables###################################
+# EtcdCluster
+###################################
+apiVersion: "etcd.database.coreos.com/v1beta2"
+kind: "EtcdCluster"
+metadata:
+  name: "etcd-global"
+spec:
+  size: 3
+  version: "3.2.13"
+  pod:
+    resources:
+      limits:
+        cpu: 300m
+        memory: 200Mi
+      requests:
+        cpu: 200m
+        memory: 100Mi
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        # prefer to stay away from other same-cell etcd pods
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                etcd_cluster: "etcd-global"
+
+# Create requested resources in each cell.
+---
+# Source: vitess/templates/vitess.yaml
+# create an etcd cluster per cell# set tuple values to more recognizable variables###################################
+# EtcdCluster
+###################################
+apiVersion: "etcd.database.coreos.com/v1beta2"
+kind: "EtcdCluster"
+metadata:
+  name: "etcd-zone1"
+spec:
+  size: 3
+  version: "3.2.13"
+  pod:
+    resources:
+      limits:
+        cpu: 300m
+        memory: 200Mi
+      requests:
+        cpu: 200m
+        memory: 100Mi
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        # prefer to stay away from other same-cell etcd pods
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                etcd_cluster: "etcd-zone1"
+---
+# Source: vitess/templates/vitess.yaml
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: vtgate-zone1
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1beta1
+    kind: Deployment
+    name: vtgate-zone1
+  minReplicas: 3
+  maxReplicas: 6
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 70
+
+  # Tablets for keyspaces
